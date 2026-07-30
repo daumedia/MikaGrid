@@ -1,0 +1,78 @@
+@import "tailwindcss";
+
+@theme {
+  /* Mika+ brand palette — mirrors Sources/MikaPlusColors.swift */
+  --color-teal-primary: #1d9e75;
+  --color-teal-light: #5dcaa5;
+  --color-teal-lightest: #9fe1cb;
+  --color-teal-surface: #e1f5ee;
+  --color-dark-bg: #1a1a2e;
+  --color-dark-bg-deep: #0f0f1a;
+  --color-destructive: #e24b4a;
+
+  /* Derived surfaces */
+  --color-line: #ffffff14;
+  --color-line-strong: #ffffff26;
+  --color-elevated: #ffffff08;
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-inter-tight), var(--font-inter), ui-sans-serif, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, monospace;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 5.5rem;
+}
+
+body {
+  background-color: var(--color-dark-bg-deep);
+  color: var(--color-teal-surface);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+::selection {
+  background-color: var(--color-teal-primary);
+  color: #ffffff;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-teal-light);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* Faint blueprint grid — the site's signature texture, echoing the snap grid */
+.grid-texture {
+  background-image:
+    linear-gradient(to right, #ffffff0a 1px, transparent 1px),
+    linear-gradient(to bottom, #ffffff0a 1px, transparent 1px);
+  background-size: 56px 56px;
+}
+
+.glow-teal {
+  background: radial-gradient(
+    ellipse 60% 50% at 50% 0%,
+    #1d9e7533 0%,
+    transparent 70%
+  );
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
