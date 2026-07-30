@@ -69,12 +69,38 @@ MikaGrid/
 │           ├── PermissionScreen.swift       ← Accessibility + auto-polling
 │           └── ShortcutsScreen.swift        ← Shortcuts overview
 │
-└── scripts/
-    ├── build.sh                     ← Build + app bundle + codesign
-    ├── create-dmg.sh                ← DMG with create-dmg (brew)
-    ├── create-dmg-simple.sh         ← DMG with hdiutil only
-    └── GenerateDMGBackground.swift  ← Branded DMG background
+├── scripts/
+│   ├── build.sh                     ← Build + app bundle + codesign
+│   ├── create-dmg.sh                ← DMG with create-dmg (brew)
+│   ├── create-dmg-simple.sh         ← DMG with hdiutil only
+│   └── GenerateDMGBackground.swift  ← Branded DMG background
+│
+└── web/                             ← Marketing site (Next.js, deployed on Vercel)
+    ├── lib/app.ts                   ← Version, download URL — sync on every release
+    ├── lib/snapActions.ts           ← Mirror of SnapAction.swift
+    ├── app/                         ← App Router: layout, page, OG image, robots, sitemap
+    └── components/                  ← Nav, Hero, SnapGridDemo, Features, …
 ```
+
+## Marketing Site (`web/`)
+
+Next.js 15 (App Router) + Tailwind CSS v4, English, dark-only. One static page.
+
+```bash
+cd web && npm install && npm run dev   # http://localhost:3000
+npm run build                          # must pass before deploying
+```
+
+**Deploy**: Vercel with **Root Directory = `web`** (zero-config otherwise).
+
+**Keep in sync on every release** — these mirror Swift/plist sources and will
+silently go stale otherwise:
+- `web/lib/app.ts` — `version` + `minMacOS` from `Resources/Info.plist`,
+  `dmgUrl` from the GitHub release, `dmgSizeMB` from `appcast.xml` (`length`)
+- `web/lib/snapActions.ts` — labels and default bindings from `Sources/SnapAction.swift`
+
+Brand tokens live in `web/app/globals.css` (`@theme`) and mirror
+`Sources/MikaPlusColors.swift`.
 
 ## Snap Actions & Default Shortcuts
 
