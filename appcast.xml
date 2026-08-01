@@ -2,7 +2,7 @@
 <rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
     <channel>
         <title>Mika+Grid</title>
-        <link>https://github.com/Mukaarts/MikaGrid</link>
+        <link>https://github.com/daumedia/MikaGrid</link>
         <description>Mika+Grid update feed</description>
         <language>en</language>
         <item>
@@ -19,7 +19,7 @@
             <sparkle:version>1.1.0</sparkle:version>
             <sparkle:shortVersionString>1.1.0</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
-            <enclosure url="https://github.com/Mukaarts/MikaGrid/releases/download/v1.1.0/Mika%2BGrid-v1.1.0.dmg"
+            <enclosure url="https://github.com/daumedia/MikaGrid/releases/download/v1.1.0/Mika%2BGrid-v1.1.0.dmg"
                        sparkle:edSignature="MY61XGFqYk+m3zUi5CnuOSFmZyhLWstRvxfddO50kp3QBi3i+KZPDiXXsemc0+8Ym/bBj7vedjEgwzQINRgCCA=="
                        length="2531425"
                        type="application/octet-stream" />

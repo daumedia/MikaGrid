@@ -11,10 +11,10 @@ export const APP = {
   minMacOSName: "Sonoma",
   arch: "Apple Silicon",
   license: "MIT",
-  repo: "https://github.com/Mukaarts/MikaGrid",
-  releases: "https://github.com/Mukaarts/MikaGrid/releases",
+  repo: "https://github.com/daumedia/MikaGrid",
+  releases: "https://github.com/daumedia/MikaGrid/releases",
   dmgUrl:
-    "https://github.com/Mukaarts/MikaGrid/releases/download/v1.1.0/Mika%2BGrid-v1.1.0.dmg",
+    "https://github.com/daumedia/MikaGrid/releases/download/v1.1.0/Mika%2BGrid-v1.1.0.dmg",
   dmgSizeMB: 2.5,
   siteUrl: "https://mikagrid.vercel.app",
   vendor: "Daumedia",
