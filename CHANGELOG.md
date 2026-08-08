@@ -1,6 +1,6 @@
 # Changelog
 
-## [1.1.1] - Unreleased
+## [1.1.1] - 2026-08-08
 
 ### Fixed
 - **Snap applies position and size in a single trigger** — previously only the size landed on the first hotkey press or popover click and the window had to be triggered a second time. `WindowManager` now temporarily disables `AXEnhancedUserInterface` on the target app (Chromium/Electron/Java apps and anything under VoiceOver animate AX frame changes, which cancelled the position write), writes size → position → size, and verifies the result by reading the frame back with up to two corrective passes (2 pt tolerance)

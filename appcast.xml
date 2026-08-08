@@ -6,6 +6,29 @@
         <description>Mika+Grid update feed</description>
         <language>en</language>
         <item>
+            <title>Version 1.1.1</title>
+            <description><![CDATA[
+                <h2>Mika+Grid 1.1.1</h2>
+                <p>Bug fix release — snapping is now reliable on the first trigger.</p>
+                <ul>
+                    <li>Snap applies position <em>and</em> size in a single trigger — previously only the size landed and the action had to be repeated, most noticeably in Chrome, VS Code, Slack and other Chromium/Electron apps</li>
+                    <li>Halves and quarters now tile without a seam on scaled displays and notch Macs</li>
+                    <li>The menu bar no longer freezes when a target app stops responding</li>
+                    <li>Clicking a zone in the popover no longer targets Mika+Grid itself</li>
+                    <li>Changing a shortcut in Preferences no longer makes one keypress fire repeatedly and break Restore</li>
+                    <li>Removed the non-functional "Enable snap animations" setting</li>
+                </ul>
+            ]]></description>
+            <pubDate>Sat, 08 Aug 2026 15:00:00 +0100</pubDate>
+            <sparkle:version>2</sparkle:version>
+            <sparkle:shortVersionString>1.1.1</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <enclosure url="https://github.com/daumedia/MikaGrid/releases/download/v1.1.1/Mika%2BGrid-v1.1.1.dmg"
+                       sparkle:edSignature="kXtaxQrZDcWcg8RiJXVYUS/vFrQluPbPT3/t0h1pYJBdQrvDYFh4wlATcsFpWrjGmGZZUKPtd9XCTWezfiGxCg=="
+                       length="2543170"
+                       type="application/octet-stream" />
+        </item>
+        <item>
             <title>Version 1.1.0</title>
             <description><![CDATA[
                 <h2>Mika+Grid 1.1.0</h2>

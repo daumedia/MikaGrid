@@ -6,7 +6,7 @@ export const APP = {
   tagline: "Snap. Organize. Focus.",
   description:
     "A lightweight macOS menubar window manager. Snap windows to halves, quarters, or a centered layout with a keystroke — or click a zone in the visual grid.",
-  version: "1.1.0",
+  version: "1.1.1",
   minMacOS: "14.0",
   minMacOSName: "Sonoma",
   arch: "Apple Silicon",
@@ -14,7 +14,7 @@ export const APP = {
   repo: "https://github.com/daumedia/MikaGrid",
   releases: "https://github.com/daumedia/MikaGrid/releases",
   dmgUrl:
-    "https://github.com/daumedia/MikaGrid/releases/download/v1.1.0/Mika%2BGrid-v1.1.0.dmg",
+    "https://github.com/daumedia/MikaGrid/releases/download/v1.1.1/Mika%2BGrid-v1.1.1.dmg",
   dmgSizeMB: 2.5,
   siteUrl: "https://mikagrid.vercel.app",
   vendor: "Daumedia",
