@@ -2,31 +2,31 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-    <key>CFBundleIdentifier</key>
-    <string>lu.daumedia.mikagrid</string>
-    <key>CFBundleName</key>
-    <string>Mika+Grid</string>
-    <key>CFBundleDisplayName</key>
-    <string>Mika+Grid</string>
-    <key>CFBundleExecutable</key>
-    <string>MikaGrid</string>
-    <key>CFBundleIconFile</key>
-    <string>AppIcon</string>
-    <key>CFBundlePackageType</key>
-    <string>APPL</string>
-    <key>CFBundleShortVersionString</key>
-    <string>1.1.0</string>
-    <key>CFBundleVersion</key>
-    <string>1</string>
-    <key>LSMinimumSystemVersion</key>
-    <string>14.0</string>
-    <key>LSUIElement</key>
-    <true/>
-    <key>NSHighResolutionCapable</key>
-    <true/>
-    <key>SUFeedURL</key>
-    <string>https://raw.githubusercontent.com/daumedia/MikaGrid/master/appcast.xml</string>
-    <key>SUPublicEDKey</key>
-    <string>eauiHgP4PM9ynLekAmo3URrX3ye3HW7D53xOZa5AeYI=</string>
+	<key>CFBundleDisplayName</key>
+	<string>Mika+Grid</string>
+	<key>CFBundleExecutable</key>
+	<string>MikaGrid</string>
+	<key>CFBundleIconFile</key>
+	<string>AppIcon</string>
+	<key>CFBundleIdentifier</key>
+	<string>lu.daumedia.mikagrid</string>
+	<key>CFBundleName</key>
+	<string>Mika+Grid</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>1.1.1</string>
+	<key>CFBundleVersion</key>
+	<string>2</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>14.0</string>
+	<key>LSUIElement</key>
+	<true/>
+	<key>NSHighResolutionCapable</key>
+	<true/>
+	<key>SUFeedURL</key>
+	<string>https://raw.githubusercontent.com/daumedia/MikaGrid/master/appcast.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>eauiHgP4PM9ynLekAmo3URrX3ye3HW7D53xOZa5AeYI=</string>
 </dict>
 </plist>

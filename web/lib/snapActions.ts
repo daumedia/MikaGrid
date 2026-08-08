@@ -1,6 +1,6 @@
 // Mirrors Sources/SnapAction.swift — labels, default bindings and target geometry.
 // Zone values are percentages of the screen's visible frame, matching
-// SnapAction.targetFrame(on:currentFrame:).
+// SnapAction.targetFrame(on:).
 
 export type Zone = { x: number; y: number; w: number; h: number }
 
