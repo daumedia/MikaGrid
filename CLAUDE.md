@@ -122,8 +122,11 @@ Brand tokens live in `web/app/globals.css` (`@theme`) and mirror
 
 - **AppState** — `@Observable @MainActor` central state holding all managers
 - **WindowManager** — uses `AXUIElementCreateApplication()` + `kAXFocusedWindowAttribute` to get/set window position and size
-- **Coordinate Conversion** — `axY = mainScreenHeight - cocoaY - windowHeight` (AX=top-left, NSScreen=bottom-left)
-- **HotkeyManager** — Carbon `InstallEventHandler` + `RegisterEventHotKey` with `nonisolated(unsafe) static var instance` for callback bridge
+- **Snap write sequence — do not "simplify"** — `applyFrame` writes **size → position → size**, not position → size. macOS constrains a position write against the window's *current* size (`NSWindow.constrainFrameRect:toScreen:`), so an oversized window cannot be moved to a target edge until it has been shrunk first. Before writing, `AXEnhancedUserInterface` is temporarily disabled on the **app** element (Chromium/Electron/Java apps and anything under VoiceOver set it; AppKit then *animates* AX frame changes and the size write cancels the position animation) and always restored via `defer`. Afterwards the frame is read back and corrected in up to 3 passes (2 pt tolerance), aborting on stagnation or a 0.6 s deadline
+- **AX timeouts** — `AXUIElementSetMessagingTimeout(_, 0.25)` on both app and window element; it applies per object, so it must be set on each. Without it a blocked target app freezes the menu bar
+- **Snap target** — `NSWorkspace.shared.frontmostApplication`, unless that is Mika+Grid itself (the `.menuBarExtraStyle(.window)` popover makes the app frontmost); then the cached last-active foreign PID from `didActivateApplicationNotification` is used
+- **Coordinate Conversion** — `axY = NSScreen.primaryHeight - cocoaY - windowHeight` (AX=top-left, NSScreen=bottom-left). `primaryHeight` is the display at global origin `(0,0)` — *not* `NSScreen.screens.first`. `SnapAction.targetFrame` rounds the four **edges** (never width/height) so halves tile seamlessly on fractional `visibleFrame`s
+- **HotkeyManager** — Carbon `InstallEventHandler` + `RegisterEventHotKey` with `nonisolated(unsafe) static var instance` for callback bridge. The event handler is installed **exactly once** (guarded by `eventHandlerRef`); `reRegisterAll` only swaps hotkeys, since a second `InstallEventHandler` would make one keypress fire twice
 - **Communication** — `NotificationCenter` posts `.showPreferences` / `.showAbout` from popover to AppDelegate
 
 ## Permissions Required
