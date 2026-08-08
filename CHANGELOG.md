@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.1.1] - Unreleased
+
+### Fixed
+- **Snap applies position and size in a single trigger** — previously only the size landed on the first hotkey press or popover click and the window had to be triggered a second time. `WindowManager` now temporarily disables `AXEnhancedUserInterface` on the target app (Chromium/Electron/Java apps and anything under VoiceOver animate AX frame changes, which cancelled the position write), writes size → position → size, and verifies the result by reading the frame back with up to two corrective passes (2 pt tolerance)
+- **Snap frames are rounded to whole points** — halves and quarters now tile without a seam or overlap on scaled displays and notch Macs
+- **Menu bar no longer hangs on unresponsive apps** — `AXUIElementSetMessagingTimeout` (0.25 s per element) plus a 0.6 s deadline for the whole snap
+- **Popover snapped the wrong app** — with `.menuBarExtraStyle(.window)` Mika+Grid can become frontmost itself; the last active foreign app is now cached and used as the snap target
+- **Duplicate hotkey firing** — `registerHotkeys()` installed an additional Carbon event handler on every shortcut change without removing the old one, so one keypress fired repeatedly and overwrote the Restore history with the already-snapped frame
+- Non-resizable, dialog and fullscreen windows are skipped cleanly (`AXUIElementIsAttributeSettable`), missing Accessibility permission is guarded up front, and unchecked AX force-casts were replaced with `CFGetTypeID`-validated casts
+- Screen height for the Cocoa↔AX conversion now comes from the display at global origin `(0,0)` instead of `NSScreen.screens.first`, which is not guaranteed to be the menu bar display
+
+### Removed
+- **"Enable snap animations" toggle** — the preference was never read by any code; the setting is gone from Preferences > General (the UserDefaults key is still cleared on reset)
+
 ## [1.1.0] - 2026-03-19
 
 ### Added

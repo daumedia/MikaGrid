@@ -88,53 +88,43 @@ enum SnapAction: String, CaseIterable, Identifiable, Sendable {
     }
 
     /// Calculate target frame for this snap action on the given screen.
-    /// Returns frame in AX coordinates (top-left origin).
-    func targetFrame(on screen: NSScreen, currentFrame: CGRect) -> CGRect? {
+    /// Returns frame in AX coordinates (top-left origin). `nil` für `.restore` (kommt aus der History).
+    func targetFrame(on screen: NSScreen) -> CGRect? {
         if self == .restore { return nil }
 
         let visible = screen.visibleFrame
-        let screenFrame = screen.frame
-        let mainScreenHeight = NSScreen.screens.first?.frame.height ?? screenFrame.height
 
-        // Convert NSScreen visibleFrame (bottom-left origin) to AX coords (top-left origin)
-        let axX = visible.origin.x
-        let axY = mainScreenHeight - visible.origin.y - visible.height
-        let w = visible.width
-        let h = visible.height
+        // NSScreen visibleFrame (bottom-left origin) → AX-Koordinaten (top-left origin)
+        let left   = visible.minX
+        let right  = visible.maxX
+        let top    = NSScreen.primaryHeight - visible.maxY
+        let bottom = top + visible.height
+        let midX   = left + visible.width / 2
+        let midY   = top + visible.height / 2
 
-        let rect: CGRect
         switch self {
-        case .leftHalf:
-            rect = CGRect(x: axX, y: axY, width: w / 2, height: h)
-        case .rightHalf:
-            rect = CGRect(x: axX + w / 2, y: axY, width: w / 2, height: h)
-        case .topHalf:
-            rect = CGRect(x: axX, y: axY, width: w, height: h / 2)
-        case .bottomHalf:
-            rect = CGRect(x: axX, y: axY + h / 2, width: w, height: h / 2)
-        case .topLeft:
-            rect = CGRect(x: axX, y: axY, width: w / 2, height: h / 2)
-        case .topRight:
-            rect = CGRect(x: axX + w / 2, y: axY, width: w / 2, height: h / 2)
-        case .bottomLeft:
-            rect = CGRect(x: axX, y: axY + h / 2, width: w / 2, height: h / 2)
-        case .bottomRight:
-            rect = CGRect(x: axX + w / 2, y: axY + h / 2, width: w / 2, height: h / 2)
-        case .maximize:
-            rect = CGRect(x: axX, y: axY, width: w, height: h)
+        case .leftHalf:    return Self.rect(left, top,  midX,  bottom)
+        case .rightHalf:   return Self.rect(midX, top,  right, bottom)
+        case .topHalf:     return Self.rect(left, top,  right, midY)
+        case .bottomHalf:  return Self.rect(left, midY, right, bottom)
+        case .topLeft:     return Self.rect(left, top,  midX,  midY)
+        case .topRight:    return Self.rect(midX, top,  right, midY)
+        case .bottomLeft:  return Self.rect(left, midY, midX,  bottom)
+        case .bottomRight: return Self.rect(midX, midY, right, bottom)
+        case .maximize:    return Self.rect(left, top,  right, bottom)
         case .center:
-            let centerW = w * 2 / 3
-            let centerH = h * 2 / 3
-            rect = CGRect(
-                x: axX + (w - centerW) / 2,
-                y: axY + (h - centerH) / 2,
-                width: centerW,
-                height: centerH
-            )
-        case .restore:
-            return nil
+            let insetX = visible.width / 6   // (1 − 2/3) / 2 → bleibt 2/3 der Fläche
+            let insetY = visible.height / 6
+            return Self.rect(left + insetX, top + insetY, right - insetX, bottom - insetY)
+        case .restore:     return nil
         }
+    }
 
-        return rect
+    /// Baut den Rahmen aus GERUNDETEN Kanten — nicht aus gerundeter Breite/Höhe. Nur so stoßen linke
+    /// und rechte Hälfte exakt aneinander (kein 1-px-Spalt, keine Überlappung), wenn `visibleFrame`
+    /// gebrochene Maße hat: skalierte Displays, Notch-Menüleiste, Dock-Insets.
+    private static func rect(_ left: CGFloat, _ top: CGFloat, _ right: CGFloat, _ bottom: CGFloat) -> CGRect {
+        let l = left.rounded(), t = top.rounded(), r = right.rounded(), b = bottom.rounded()
+        return CGRect(x: l, y: t, width: max(0, r - l), height: max(0, b - t))
     }
 }

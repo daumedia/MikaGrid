@@ -1,7 +1,7 @@
 // GeneralTabView.swift
 // MikaGrid
 //
-// General preferences: Launch at Login, animations, etc.
+// General preferences: Launch at Login, accessibility status, updates.
 // Swift 6.0 strict concurrency, macOS 14+
 
 import SwiftUI
@@ -22,10 +22,6 @@ struct GeneralTabView: View {
                         .onChange(of: launchAtLogin) { _, newValue in
                             appState.launchAtLoginManager.setEnabled(newValue)
                         }
-
-                    Divider()
-
-                    Toggle("Enable snap animations", isOn: Bindable(appState.preferences).animationsEnabled)
 
                     Divider()
 

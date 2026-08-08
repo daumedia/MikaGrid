@@ -54,6 +54,10 @@ private func hotkeyModifiersToSymbols(_ modifiers: UInt32) -> String {
 @MainActor
 final class HotkeyManager {
     nonisolated(unsafe) private var hotKeyRefs: [EventHotKeyRef?] = []
+    /// Der Carbon-Handler wird GENAU EINMAL installiert. `reRegisterAll` tauscht nur die Hotkeys aus —
+    /// würde hier jedes Mal ein weiterer Handler installiert, löste ein Tastendruck nach N Änderungen
+    /// in den Einstellungen N+1-mal aus (und zerstörte dabei die Restore-Historie).
+    nonisolated(unsafe) private var eventHandlerRef: EventHandlerRef?
     private var onSnap: @MainActor (SnapAction) -> Void
 
     nonisolated(unsafe) private static var instance: HotkeyManager?
@@ -92,6 +96,9 @@ final class HotkeyManager {
             if let ref {
                 UnregisterEventHotKey(ref)
             }
+        }
+        if let handler = eventHandlerRef {
+            RemoveEventHandler(handler)
         }
     }
 
@@ -134,26 +141,30 @@ final class HotkeyManager {
     }
 
     private func registerHotkeys() {
-        var eventType = EventTypeSpec(eventClass: OSType(kEventClassKeyboard), eventKind: UInt32(kEventHotKeyPressed))
+        // Der Handler ist zustandslos und dispatcht über die hotKeyID — eine Installation reicht für
+        // alle folgenden Re-Registrierungen.
+        if eventHandlerRef == nil {
+            var eventType = EventTypeSpec(eventClass: OSType(kEventClassKeyboard), eventKind: UInt32(kEventHotKeyPressed))
 
-        let handler: EventHandlerUPP = { _, event, _ -> OSStatus in
-            var hotKeyID = EventHotKeyID()
-            GetEventParameter(event, EventParamName(kEventParamDirectObject), EventParamType(typeEventHotKeyID), nil, MemoryLayout<EventHotKeyID>.size, nil, &hotKeyID)
+            let handler: EventHandlerUPP = { _, event, _ -> OSStatus in
+                var hotKeyID = EventHotKeyID()
+                GetEventParameter(event, EventParamName(kEventParamDirectObject), EventParamType(typeEventHotKeyID), nil, MemoryLayout<EventHotKeyID>.size, nil, &hotKeyID)
 
-            DispatchQueue.main.async { @MainActor in
-                guard let manager = HotkeyManager.instance else { return }
-                for action in SnapAction.allCases {
-                    if action.hotkeyID == hotKeyID.id {
-                        manager.onSnap(action)
-                        break
+                DispatchQueue.main.async { @MainActor in
+                    guard let manager = HotkeyManager.instance else { return }
+                    for action in SnapAction.allCases {
+                        if action.hotkeyID == hotKeyID.id {
+                            manager.onSnap(action)
+                            break
+                        }
                     }
                 }
+
+                return noErr
             }
 
-            return noErr
+            InstallEventHandler(GetApplicationEventTarget(), handler, 1, &eventType, nil, &eventHandlerRef)
         }
-
-        InstallEventHandler(GetApplicationEventTarget(), handler, 1, &eventType, nil, nil)
 
         // Signature: "MKGD" (MiKaGriD)
         let signature: OSType = 0x4D4B4744

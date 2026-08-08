@@ -19,17 +19,14 @@ final class AppPreferences {
         didSet { defaults.set(permissionSkipped, forKey: "permissionSkipped") }
     }
 
-    var animationsEnabled: Bool {
-        didSet { defaults.set(animationsEnabled, forKey: "animationsEnabled") }
-    }
-
     init() {
         self.hasCompletedOnboarding = defaults.object(forKey: "hasCompletedOnboarding") as? Bool ?? false
         self.permissionSkipped = defaults.object(forKey: "permissionSkipped") as? Bool ?? false
-        self.animationsEnabled = defaults.object(forKey: "animationsEnabled") as? Bool ?? true
     }
 
     func resetAllPreferences() {
+        // "animationsEnabled" gibt es nicht mehr — Schlüssel bleibt gelistet, damit vorhandene
+        // UserDefaults beim Zurücksetzen aufgeräumt werden.
         let allKeys = [
             "hasCompletedOnboarding", "permissionSkipped", "animationsEnabled",
             "hotkeyBindings",
@@ -42,6 +39,5 @@ final class AppPreferences {
 
         hasCompletedOnboarding = true
         permissionSkipped = false
-        animationsEnabled = true
     }
 }
