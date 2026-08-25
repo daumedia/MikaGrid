@@ -73,9 +73,9 @@ Auftragsarbeit aufmerksam macht — der Zweck, den das PRD unter Monetarisierung
   wird, dann trifft die Aussage zu.
 - **AK-12** ⚠ · Angenommen, ein Interessent ruft die im Quelltext hinterlegte Adresse
   `https://mikagrid.vercel.app` auf, dann erhält er eine Fehlerseite.
-  *(Unverändert am 2026-08-25: HTTP 404 mit `x-vercel-error: DEPLOYMENT_NOT_FOUND`. Die
-  Seite ist vollständig gebaut und geprüft, aber nicht veröffentlicht — dazu braucht es
-  Zugang zum Vercel-Konto. Der Marker bleibt deshalb stehen. Siehe FB-02.)*
+  *(Unverändert am 2026-08-25: HTTP 404 mit `x-vercel-error: DEPLOYMENT_NOT_FOUND`. Das
+  Vercel-Projekt ist verbunden und baut Vorschauen je Pull Request; ein Produktivstand
+  unter dieser Adresse fehlt. Der Marker bleibt deshalb stehen. Siehe FB-02.)*
 - **AK-13** · Angenommen, ein Besucher klickt in der Fußzeile auf „MIT Licence", dann
   erreicht er die Lizenzdatei im Repository.
   *(Bis 1.1.1 führte der Link auf `…/blob/master/LICENSE` ins Leere: Die Datei existierte
@@ -119,9 +119,15 @@ Geprüft gegen `~/.claude/sdd/sicherheit.md`.
   der Fußzeile verlinkt und stehen in der Sitemap. Dazu `docs/datenschutz.md` als interne
   Fassung.
 - **FB-02 ⚠ Die Seite ist nicht erreichbar.**
-  **Nicht behoben — nicht behebbar ohne Zugang:** `mikagrid.vercel.app` antwortet weiter
-  mit `DEPLOYMENT_NOT_FOUND`. Der Bau ist geprüft (`npm run build`, acht statische Routen),
-  aber die Veröffentlichung verlangt Zugriff auf das Vercel-Konto des Betreibers.
+  **Nicht behoben — nicht behebbar ohne Zugang.** Genauer, als die Erfassung es sehen
+  konnte: Das Vercel-Projekt **existiert** und ist mit dem Repository verbunden — es hat für
+  Pull Request #7 selbsttätig ein Vorschau-Deployment gebaut (`daumedia/mikaplus-grid`).
+  Es fehlt also nicht die Verbindung, sondern ein **Produktiv-Deployment** unter einer
+  erreichbaren Adresse: `mikagrid.vercel.app`, `mikaplus-grid.vercel.app` und
+  `mikaplusgrid.vercel.app` antworten alle mit 404.
+  **Zu klären:** ob mit dem Merge nach `main` ein Produktivstand entsteht, und unter welcher
+  Adresse. Stimmt sie nicht mit `APP.siteUrl` überein, müssen `lib/app.ts`, die kanonische
+  Adresse, `sitemap.xml` und die strukturierten Daten nachgezogen werden.
   **Der einzige verbliebene Punkt dieses Features.**
 - **FB-03 ✅ Der Lizenzlink der Fußzeile war tot.**
   **Behoben:** `LICENSE` existiert jetzt im Repository, und `APP.licenseUrl` zeigt auf
