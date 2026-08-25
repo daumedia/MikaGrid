@@ -89,7 +89,9 @@ DMG="$INSTALLER_DIR/$APP_NAME-v$VERSION.dmg"
 [ -f "$DMG" ] || fail "DMG was not created at $DMG"
 
 # The DMG itself was never signed before — the disk image carried no proof of origin at all.
-IDENTITY="${SIGN_IDENTITY:-$(security find-identity -v -p codesigning | grep "Developer ID Application" | head -1 | sed -E 's/.*"(.*)"/\1/')}"
+# `|| true`: ohne Zertifikat liefert grep Exit 1 und beendet unter `set -e` das Skript.
+IDENTITY="${SIGN_IDENTITY:-$(security find-identity -v -p codesigning 2>/dev/null \
+    | grep "Developer ID Application" | head -1 | sed -E 's/.*"(.*)"/\1/' || true)}"
 if [ -n "$IDENTITY" ]; then
     echo "==> Signing DMG..."
     codesign --force --sign "$IDENTITY" --timestamp "$DMG"

@@ -59,7 +59,7 @@ lösbar sind**.
 | Punkt | Warum offen | Was fehlt |
 |---|---|---|
 | **Notarisierung** (B09/FB-01, B08/FB-08) | Zugangsdaten für App Store Connect gehören nicht ins Repository | Einmalig `xcrun notarytool store-credentials MikaGrid --apple-id <id> --team-id CWJM4J4HFN --password <app-spezifisch>`, danach erledigt `scripts/release.sh` den Rest |
-| **Landingpage veröffentlichen** (B10/FB-02) | Zugriff auf das Vercel-Konto nötig | Projekt mit Root Directory `web` verbinden. Bau, Impressum, Datenschutzerklärung und Lizenzlink sind fertig und geprüft |
+| **Landingpage veröffentlichen** (B10/FB-02) | Zugriff auf das Vercel-Konto nötig | Das Projekt `daumedia/mikaplus-grid` ist bereits verbunden und baut Vorschauen je Pull Request — es fehlt ein Produktivstand unter einer erreichbaren Adresse. Weicht sie von `APP.siteUrl` ab, ist `web/lib/app.ts` nachzuziehen |
 
 Ein Developer-ID-Zertifikat ist vorhanden (`Michael Rodrigues, CWJM4J4HFN`), die
 Mitgliedschaft besteht also — bei der Notarisierung fehlt wirklich nur der einmalige

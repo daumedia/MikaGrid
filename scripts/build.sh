@@ -22,8 +22,15 @@ for arg in "$@"; do
 done
 
 # Developer ID if available, ad-hoc otherwise. Auto-detect keeps the common case zero-config.
-SIGN_IDENTITY="${SIGN_IDENTITY:-$(security find-identity -v -p codesigning 2>/dev/null \
-    | grep "Developer ID Application" | head -1 | sed -E 's/.*"(.*)"/\1/')}"
+#
+# The `|| true` is load-bearing: with `set -e` and `pipefail`, a grep that finds nothing
+# exits 1 and takes the whole script with it. That is exactly the case on a machine without
+# a signing certificate — a CI runner, or a fresh checkout.
+detect_identity() {
+    security find-identity -v -p codesigning 2>/dev/null \
+        | grep "Developer ID Application" | head -1 | sed -E 's/.*"(.*)"/\1/' || true
+}
+SIGN_IDENTITY="${SIGN_IDENTITY:-$(detect_identity)}"
 if [ -z "$SIGN_IDENTITY" ]; then
     SIGN_IDENTITY="-"
     echo "==> No Developer ID found — signing ad-hoc (not distributable, see B09/FB-01)"
@@ -113,14 +120,16 @@ sign_component "$SPARKLE_DIR"
 # Ad-hoc builds still need library validation disabled: without a shared team identifier the
 # app cannot load the embedded Sparkle.framework. Developer ID builds do not — keeping the
 # entitlement there would weaken the hardened runtime for no reason.
+# The source file is never modified: PlistBuddy rewrites a plist wholesale and drops its
+# comments, so editing it in place would silently delete the explanation of why
+# disable-library-validation is absent — on every single ad-hoc build.
 ENTITLEMENTS="$PROJECT_DIR/Resources/MikaGrid.entitlements"
 if [ "$SIGN_IDENTITY" = "-" ]; then
     ENTITLEMENTS="$BUILD_DIR/adhoc.entitlements"
-    /usr/libexec/PlistBuddy -c "Add :com.apple.security.cs.disable-library-validation bool true" \
-        -c "Save" "$PROJECT_DIR/Resources/MikaGrid.entitlements" 2>/dev/null || true
     cp "$PROJECT_DIR/Resources/MikaGrid.entitlements" "$ENTITLEMENTS"
-    /usr/libexec/PlistBuddy -c "Delete :com.apple.security.cs.disable-library-validation" \
-        "$PROJECT_DIR/Resources/MikaGrid.entitlements" 2>/dev/null || true
+    /usr/libexec/PlistBuddy \
+        -c "Add :com.apple.security.cs.disable-library-validation bool true" \
+        "$ENTITLEMENTS" >/dev/null
     echo "==> Ad-hoc build: adding disable-library-validation (required without a team identifier)"
 fi
 
