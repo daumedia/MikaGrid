@@ -10,24 +10,23 @@ struct PermissionScreen: View {
     let appState: AppState
     let onNext: () -> Void
 
-    @State private var autoAdvanceTask: Task<Void, Never>?
+    /// Sorgt dafür, dass nach erteilter Berechtigung **genau einmal** weitergeblättert wird.
+    /// Bis 1.1.1 legte jeder Taktschlag eine weitere Verzögerungsaufgabe an, ohne die vorherige
+    /// abzubrechen — es wurde mehrfach weitergeschaltet.
+    @State private var hasAdvanced = false
+    @State private var advanceTask: Task<Void, Never>?
 
-    private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+    private var isGranted: Bool { appState.accessibilityManager.isGranted }
 
     var body: some View {
         VStack(spacing: 24) {
             Spacer()
 
-            if appState.accessibilityManager.isGranted {
-                Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 48))
-                    .foregroundStyle(Color.green)
-                    .transition(.scale.combined(with: .opacity))
-            } else {
-                Image(systemName: "lock.shield")
-                    .font(.system(size: 48))
-                    .foregroundStyle(Color.MikaPlus.tealPrimary)
-            }
+            Image(systemName: isGranted ? "checkmark.circle.fill" : "lock.shield")
+                .font(.system(size: 48))
+                .foregroundStyle(isGranted ? Color.green : Color.MikaPlus.tealPrimary)
+                .transition(.scale.combined(with: .opacity))
+                .accessibilityHidden(true)
 
             Text("Accessibility Permission")
                 .font(.system(size: 20, weight: .semibold))
@@ -39,23 +38,23 @@ struct PermissionScreen: View {
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: 340)
 
-            if !appState.accessibilityManager.isGranted {
+            if !isGranted {
                 Button {
                     appState.accessibilityManager.openSystemSettings()
                 } label: {
                     Text("Open System Settings")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundStyle(.white)
-                        .frame(width: 200, height: 40)
-                        .background(Color.MikaPlus.tealPrimary)
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                        .onboardingPrimaryButton()
                 }
                 .buttonStyle(.plain)
+            } else {
+                Text("Granted — continuing…")
+                    .font(.system(size: 12))
+                    .foregroundStyle(Color.MikaPlus.tealLight)
             }
 
             Spacer()
 
-            if !appState.accessibilityManager.isGranted {
+            if !isGranted {
                 Button("Skip for now") {
                     appState.preferences.permissionSkipped = true
                     onNext()
@@ -69,23 +68,37 @@ struct PermissionScreen: View {
                 .frame(height: 20)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .animation(.easeInOut, value: appState.accessibilityManager.isGranted)
+        .animation(.easeInOut, value: isGranted)
         .onAppear {
+            // Ein einziger Takt — der des Managers. Bis 1.1.1 lief hier ein zweiter daneben.
             appState.accessibilityManager.startPolling()
         }
         .onDisappear {
             appState.accessibilityManager.stopPolling()
-            autoAdvanceTask?.cancel()
+            advanceTask?.cancel()
         }
-        .onReceive(timer) { _ in
-            if appState.accessibilityManager.isGranted {
-                autoAdvanceTask = Task { @MainActor in
-                    try? await Task.sleep(for: .seconds(1))
-                    if !Task.isCancelled {
-                        onNext()
-                    }
-                }
+        .onChange(of: isGranted) { _, granted in
+            guard granted, !hasAdvanced else { return }
+            hasAdvanced = true
+            advanceTask = Task { @MainActor in
+                try? await Task.sleep(for: .seconds(1))
+                guard !Task.isCancelled else { return }
+                onNext()
             }
         }
+    }
+}
+
+// MARK: - Shared button shape
+
+extension View {
+    /// Der Primärbutton des Onboardings — einmal definiert statt dreimal kopiert.
+    func onboardingPrimaryButton() -> some View {
+        self
+            .font(.system(size: 14, weight: .medium))
+            .foregroundStyle(.white)
+            .frame(width: 200, height: 40)
+            .background(Color.MikaPlus.tealPrimary)
+            .clipShape(RoundedRectangle(cornerRadius: 8))
     }
 }

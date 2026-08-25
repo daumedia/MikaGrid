@@ -8,23 +8,19 @@ import SwiftUI
 
 struct ShortcutsScreen: View {
     let appState: AppState
-    let onDismiss: () -> Void
+    let onDone: () -> Void
 
-    @State private var launchAtLogin = true
+    @State private var launchAtLogin = false
 
-    private let shortcuts: [(keys: String, label: String)] = [
-        ("⌃⌥←", "Left Half"),
-        ("⌃⌥→", "Right Half"),
-        ("⌃⌥↑", "Top Half"),
-        ("⌃⌥↓", "Bottom Half"),
-        ("⌃⌥U", "Top Left"),
-        ("⌃⌥I", "Top Right"),
-        ("⌃⌥J", "Bottom Left"),
-        ("⌃⌥K", "Bottom Right"),
-        ("⌃⌥↩", "Maximize"),
-        ("⌃⌥C", "Center"),
-        ("⌃⌥⌫", "Restore"),
-    ]
+    /// Die **tatsächliche** Belegung, nicht eine fest hinterlegte Liste. Bis 1.1.1 standen hier
+    /// elf hartkodierte Paare: Wer seine Kürzel geändert hatte und das Onboarding erneut aufrief,
+    /// bekam die Standardwerte gezeigt — eine zweite Wahrheit für dieselbe Sache.
+    private var shortcuts: [(action: SnapAction, keys: String)] {
+        let bindings = appState.hotkeyManager?.currentBindings ?? HotkeyManager.defaultBindings()
+        return SnapAction.allCases.map { action in
+            (action, (bindings[action] ?? action.defaultBinding).displayString)
+        }
+    }
 
     var body: some View {
         VStack(spacing: 16) {
@@ -37,13 +33,13 @@ struct ShortcutsScreen: View {
 
             ScrollView {
                 VStack(spacing: 6) {
-                    ForEach(shortcuts, id: \.keys) { shortcut in
+                    ForEach(shortcuts, id: \.action) { shortcut in
                         HStack {
                             Text(shortcut.keys)
                                 .font(.system(size: 13, design: .monospaced))
                                 .foregroundStyle(Color.MikaPlus.tealLight)
                                 .frame(width: 80, alignment: .trailing)
-                            Text(shortcut.label)
+                            Text(shortcut.action.label)
                                 .font(.system(size: 13))
                                 .foregroundStyle(Color.MikaPlus.textPrimary)
                             Spacer()
@@ -52,6 +48,8 @@ struct ShortcutsScreen: View {
                         .padding(.vertical, 6)
                         .background(Color.white.opacity(0.05))
                         .clipShape(RoundedRectangle(cornerRadius: 6))
+                        .accessibilityElement(children: .combine)
+                        .accessibilityLabel("\(shortcut.action.label), \(shortcut.keys)")
                     }
                 }
                 .padding(.horizontal, 40)
@@ -65,18 +63,17 @@ struct ShortcutsScreen: View {
                 .font(.system(size: 13))
                 .foregroundStyle(Color.MikaPlus.textPrimary)
                 .padding(.horizontal, 40)
+                // Sofort anwenden statt erst bei „Done": Der Schalter zeigt damit immer den
+                // wirklichen Systemzustand, auch wenn das Fenster anders verlassen wird.
+                .onChange(of: launchAtLogin) { _, newValue in
+                    appState.launchAtLoginManager.setEnabled(newValue)
+                    launchAtLogin = appState.launchAtLoginManager.isEnabled
+                }
 
             Button {
-                appState.launchAtLoginManager.setEnabled(launchAtLogin)
-                appState.preferences.hasCompletedOnboarding = true
-                onDismiss()
+                onDone()
             } label: {
-                Text("Done")
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(.white)
-                    .frame(width: 200, height: 40)
-                    .background(Color.MikaPlus.tealPrimary)
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                Text("Done").onboardingPrimaryButton()
             }
             .buttonStyle(.plain)
 
@@ -84,5 +81,9 @@ struct ShortcutsScreen: View {
                 .frame(height: 30)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .onAppear {
+            // Den echten Zustand lesen, statt „an" zu behaupten.
+            launchAtLogin = appState.launchAtLoginManager.isEnabled
+        }
     }
 }

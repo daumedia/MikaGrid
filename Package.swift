@@ -18,6 +18,11 @@ let package = Package(
                 .linkedFramework("Carbon"),
                 .linkedFramework("ApplicationServices"),
             ]
-        )
+        ),
+        .testTarget(
+            name: "MikaGridTests",
+            dependencies: ["MikaGrid"],
+            path: "Tests/MikaGridTests"
+        ),
     ]
 )

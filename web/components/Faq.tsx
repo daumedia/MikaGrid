@@ -15,11 +15,12 @@ const FAQS: { q: string; a: React.ReactNode }[] = [
     ),
   },
   {
-    q: "macOS says the app is from an unidentified developer. What now?",
+    q: "macOS warns me when I open it. What now?",
     a: (
       <>
-        The current builds are ad-hoc signed and not notarised yet, so Gatekeeper
-        blocks the first launch. Right-click the app in Applications, choose{" "}
+        Builds are signed with a Developer ID but are not notarised yet, so
+        Gatekeeper asks for confirmation on first launch. Right-click the app in
+        Applications, choose{" "}
         <strong className="text-teal-surface">Open</strong>, then confirm with{" "}
         <strong className="text-teal-surface">Open</strong> in the dialog.
         Alternatively go to System Settings → Privacy &amp; Security and click{" "}
@@ -32,9 +33,10 @@ const FAQS: { q: string; a: React.ReactNode }[] = [
     q: "Does it run on Intel Macs?",
     a: (
       <>
-        The released build is {APP.arch} (arm64) only. Intel Macs would need a
-        build from source — the project compiles with a plain{" "}
-        <code className="font-mono text-teal-lightest/80">swift build</code>.
+        Releases ship as a universal binary covering Apple Silicon and Intel. If
+        you prefer to build it yourself, a plain{" "}
+        <code className="font-mono text-teal-lightest/80">swift build</code> works
+        on either architecture.
       </>
     ),
   },
@@ -55,6 +57,20 @@ const FAQS: { q: string; a: React.ReactNode }[] = [
         Mika+Grid uses Sparkle. It checks a signed appcast feed and verifies each
         download with an EdDSA signature before installing. Automatic checks can
         be switched off in Preferences → General.
+      </>
+    ),
+  },
+  {
+    q: "What data does it collect?",
+    a: (
+      <>
+        None. There is no account, no server and no telemetry — the app stores a
+        handful of settings on your Mac and talks to GitHub once a day to look for
+        updates. Details are on the{" "}
+        <a href="/privacy" className="text-teal-light underline underline-offset-4">
+          privacy page
+        </a>
+        .
       </>
     ),
   },

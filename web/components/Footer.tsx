@@ -37,12 +37,18 @@ export function Footer() {
             Report an issue
           </a>
           <a
-            href={`${APP.repo}/blob/master/LICENSE`}
+            href={APP.licenseUrl}
             target="_blank"
             rel="noreferrer noopener"
             className="transition-colors hover:text-teal-surface"
           >
             {APP.license} Licence
+          </a>
+          <a href="/privacy" className="transition-colors hover:text-teal-surface">
+            Privacy
+          </a>
+          <a href="/legal" className="transition-colors hover:text-teal-surface">
+            Legal
           </a>
         </nav>
       </div>

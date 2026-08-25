@@ -24,20 +24,34 @@ final class AppPreferences {
         self.permissionSkipped = defaults.object(forKey: "permissionSkipped") as? Bool ?? false
     }
 
+    /// Eigene Schlüssel. `animationsEnabled` gibt es seit 1.1.1 nicht mehr — der Schlüssel bleibt
+    /// gelistet, damit vorhandene Altbestände beim Zurücksetzen aufgeräumt werden.
+    private static let ownKeys = [
+        "hasCompletedOnboarding", "permissionSkipped", "animationsEnabled",
+        "hotkeyBindings", "hotkeyBindingsSchemaVersion",
+    ]
+
+    /// Schlüssel von Sparkle in derselben Suite. Ohne sie bliebe nach „Alle Einstellungen
+    /// zurücksetzen" insbesondere die unbeaufsichtigte Installation aktiv.
+    private static let sparkleKeys = [
+        "SUEnableAutomaticChecks", "SUAutomaticallyUpdate", "SUSendProfileInfo",
+        "SULastCheckTime", "SUHasLaunchedBefore", "SUSkippedVersion",
+        "SULastProfileSubmitDate", "SUUpdateGroupIdentifier",
+    ]
+
+    /// Versetzt die App in den Auslieferungszustand.
+    ///
+    /// Bis 1.1.1 setzte diese Methode `hasCompletedOnboarding` unmittelbar nach dem Löschen
+    /// wieder auf `true` — „Alle Einstellungen zurücksetzen" führte damit gerade **nicht** in
+    /// den Auslieferungszustand, und das Onboarding erschien nie wieder.
+    ///
+    /// Das Anmeldeobjekt und die Kürzel setzt `AppState.resetEverything()` zurück; hier stehen
+    /// nur die Einstellungen, damit die Fachlogik nicht auf zwei Stellen verteilt ist.
     func resetAllPreferences() {
-        // "animationsEnabled" gibt es nicht mehr — Schlüssel bleibt gelistet, damit vorhandene
-        // UserDefaults beim Zurücksetzen aufgeräumt werden.
-        let allKeys = [
-            "hasCompletedOnboarding", "permissionSkipped", "animationsEnabled",
-            "hotkeyBindings",
-        ]
-        for key in allKeys {
+        for key in Self.ownKeys + Self.sparkleKeys {
             defaults.removeObject(forKey: key)
         }
-
-        LaunchAtLoginManager().setEnabled(false)
-
-        hasCompletedOnboarding = true
+        hasCompletedOnboarding = false
         permissionSkipped = false
     }
 }

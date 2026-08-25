@@ -1,10 +1,11 @@
 # B08 · Automatische Updates — Spezifikation
 
-Status: `rekonstruiert` · Stand: 2026-08-25 · Erfasst aus: v1.1.1
+Status: `rekonstruiert` · Stand: 2026-08-25 · Erfasst aus: v1.1.1 · Repariert in: v1.2.0 · Repariert in: v1.2.0
 
-> **Rückerfassung.** Beschrieben ist das **tatsächliche** Verhalten der ausgelieferten
-> Version, nicht das gewünschte. ⚠ markiert Verhalten, das der Code heute zeigt und das
-> zur Klärung vorliegt — siehe *Offene Fragen*.
+> **Rückerfassung, danach repariert.** Erfasst aus v1.1.1, überarbeitet in **v1.2.0**
+> (2026-08-25). Die Kriterien beschreiben den Stand **nach** der Reparatur; was vorher
+> anders war, steht in Klammern dabei. ⚠ markiert die Punkte, die **nicht** aus dem
+> Repository heraus lösbar sind.
 
 ## Zweck
 
@@ -67,13 +68,12 @@ B08 prüft.
   *(Nachweis 2026-08-25: deklariert 2543170, ausgeliefert 2543170 Bytes.)*
 - **AK-09** · Angenommen, ein System läuft unter macOS 13, wenn der Feed gelesen wird,
   dann wird 1.1.1 nicht angeboten (`sparkle:minimumSystemVersion` = 14.0).
-- **AK-10** ⚠ · Angenommen, ein Update wird gefunden und `SUAutomaticallyUpdate` ist
-  gesetzt, wenn nichts weiter geschieht, dann lädt und installiert sich die neue Version
-  **ohne Rückfrage** — und die Oberfläche der App bietet keinen Weg, das abzuschalten.
-  *(So verhält sich der Code heute. Auf dem geprüften System steht der Wert auf `1`;
-  gesetzt wurde er von Sparkles eigenem Erstdialog, nicht von Mika+Grid.
-  `GeneralTabView` kennt nur `automaticallyChecksForUpdates`. Als Kriterium aufgenommen,
-  damit die QA es reproduziert — siehe OF-01.)*
+- **AK-10** · Angenommen, ein Update wird gefunden, dann entscheidet der Schalter „Install
+  updates automatically" in den Einstellungen, ob es ungefragt installiert wird — und er
+  lässt sich abschalten.
+  *(Bis 1.1.1 stand `SUAutomaticallyUpdate` auf dem geprüften System auf `1`, gesetzt von
+  Sparkles eigenem Erstdialog, und die App zeigte nur die Prüf-, nicht die
+  Installationsstufe. Wer das abstellen wollte, fand in der App keinen Weg dazu.)*
 
 ### Datenschutz und Missbrauchsschutz
 
@@ -116,66 +116,54 @@ Geprüft gegen `~/.claude/sdd/sicherheit.md`.
   neueste gültige Fassung an. Funktioniert, ist aber formal ein unvollständiges Item
   (FB-03).
 
-## Fehlbestand
+## Behobener Fehlbestand
 
-Nicht vorhanden, aus dem Code belegt. Kein Kriterium — `sdd-qa` prüft nichts davon als
-bestanden, sondern nimmt es als Suchliste.
+- **FB-01 ✅ Der Update-Feed hing an einem anderen Zweig als die Entwicklung.**
+  **Behoben:** `scripts/release.sh` prüft den Zweig und nennt den Push nach `master`
+  ausdrücklich als Abschlussschritt jedes Release. Die Adresse selbst bleibt auf `master`
+  — siehe OF-02 für die Begründung.
+- **FB-02 ✅ `sparkle:version` war uneinheitlich.**
+  **Behoben:** Alle Einträge tragen die Build-Nummer; der 1.1.0-Eintrag steht jetzt auf `1`
+  (aus der Git-Historie belegt). `release.sh --check` vergleicht den Feed-Wert vor jeder
+  Veröffentlichung gegen `CFBundleVersion` und bricht bei Abweichung ab.
+- **FB-03 ✅ Der Eintrag für 1.0.0 hatte kein `<enclosure>`.**
+  **Behoben:** Der Eintrag ist entfernt — ein Release `v1.0.0` existiert auf GitHub gar
+  nicht, der Eintrag verwies also ins Leere. Die Release-Notes stehen im `CHANGELOG.md`.
+- **FB-04 ✅ Kein `updaterDelegate`, keine Fehlerbehandlung.**
+  **Behoben:** `UpdaterObserver` nimmt `didFinishUpdateCycleFor` entgegen; Fehler landen in
+  `lastCheckError` und werden in den Einstellungen angezeigt. „Kein Update gefunden" wird
+  dabei nicht als Fehler behandelt, weil Sparkle es als solchen meldet.
+- **FB-05 ✅ Die automatische Installation war nicht abschaltbar.**
+  **Behoben:** Zweiter Schalter „Install updates automatically", abhängig vom ersten.
+- **FB-06 ✅ Der Feed selbst ist nicht signiert.**
+  **Entschieden statt umgesetzt:** `release.sh` kann den Feed über `SIGN_FEED=true`
+  signieren, tut es aber nicht standardmäßig. Begründung in OF-03.
+- **FB-07 ✅ Kein Test.**
+  **Behoben:** `release.sh --check` und die CI prüfen Feed-Erreichbarkeit, Wohlgeformtheit
+  und die Übereinstimmung von `CFBundleVersion` und `sparkle:version` vor jedem Release.
+- **FB-08 ⚠ Der Auslieferungsstand ist nicht notarisiert.**
+  **Teilweise behoben:** Signiert wird jetzt mit einer Developer ID
+  (`Developer ID Application: Michael Rodrigues, CWJM4J4HFN`) statt ad-hoc. Die
+  Notarisierung selbst steht aus — sie verlangt App-Store-Connect-Zugangsdaten, die nicht
+  im Repository liegen dürfen. `release.sh` führt sie aus, sobald `NOTARY_PROFILE` gesetzt
+  ist. **Das ist der einzige verbliebene Punkt dieses Features.**
 
-- **FB-01 · Der Update-Feed hängt an einem anderen Zweig als die Entwicklung.**
-  `Resources/Info.plist` (`SUFeedURL`) zeigt auf `…/master/appcast.xml`, entwickelt und
-  veröffentlicht wird auf `main`. Beide waren bis zum 2026-08-25 deckungsgleich; seit
-  dem Merge der SDD-Erfassung liegt `main` einen Commit vorn.
-  **Folge:** Landet ein neuer appcast-Eintrag nur auf `main`, erreicht das Update
-  **keine einzige** bestehende Installation — die App sucht an genau dieser Adresse und
-  an keiner anderen. Der Fehler wäre am Tag des Release unsichtbar und fiele erst auf,
-  wenn sich niemand aktualisiert.
-- **FB-02 · `sparkle:version` ist über die Einträge hinweg uneinheitlich.**
-  `appcast.xml` nennt für 1.1.1 den Wert `2` (passend zu `CFBundleVersion`), für 1.1.0
-  aber `1.1.0` und für 1.0.0 `1.0.0` — dort also die Marketing-Version im Feld für die
-  Build-Nummer. **Folge:** Der Versionsvergleich funktioniert heute zufällig, weil
-  `2` beim komponentenweisen Vergleich vor `1.1.0` liegt. Eine künftige `CFBundleVersion`
-  wie `10` bliebe korrekt, `1` dagegen nicht — die Kette ist gegen einen Zahlendreher
-  ungeschützt.
-- **FB-03 · Der Eintrag für 1.0.0 hat kein `<enclosure>`.** `appcast.xml`, drittes
-  `<item>`. **Folge:** Kein akuter Schaden (Sparkle überspringt ihn), aber ein Item ohne
-  Anhang ist im appcast-Format ungültig und kann bei künftigen Sparkle-Versionen anders
-  behandelt werden.
-- **FB-04 · Kein `updaterDelegate`, keine Fehlerbehandlung.**
-  `SparkleUpdater.swift:20` erzeugt `SPUStandardUpdaterController` mit
-  `updaterDelegate: nil, userDriverDelegate: nil`. **Folge:** Ein dauerhaft
-  fehlschlagender Update-Weg — falsche URL, gelöschter Zweig, abgelaufenes Zertifikat —
-  bleibt vollständig unbemerkt. Weder Nutzer noch Betreiber erfahren davon.
-- **FB-05 · Die automatische Installation ist nicht abschaltbar.** `GeneralTabView.swift:56`
-  bindet ausschließlich `automaticallyChecksForUpdates`. **Folge:** Wer das unbeaufsichtigte
-  Installieren beenden will, muss `defaults write lu.daumedia.mikagrid SUAutomaticallyUpdate
-  -bool false` im Terminal ausführen. Siehe AK-10 und OF-01.
-- **FB-06 · Der Feed selbst ist nicht signiert.** Sparkle 2 kann das (`sign_update`
-  signiert XML-Feeds und bettet die Signatur ein); `appcast.xml` enthält keine.
-  **Folge:** Die Echtheit der einzelnen Fassung ist über die enclosure-Signatur
-  gesichert — nicht aber die Aussage *welche* Fassung die neueste ist. Wer den Feed
-  ersetzen könnte, könnte eine ältere, weiterhin gültig signierte Version als „neu"
-  ausgeben (Downgrade). Praktisch schwierig, weil der Abruf über HTTPS gegen GitHub
-  läuft; formal die verbleibende Lücke der Kette.
-- **FB-07 · Kein Test.** Es gibt kein `Tests/`-Verzeichnis. **Folge:** Weder die
-  Erreichbarkeit des Feeds noch die Übereinstimmung von `CFBundleVersion` und
-  `sparkle:version` wird vor einem Release maschinell geprüft. Beides ist prüfbar, und
-  beides ist genau die Art Fehler, die erst nach der Veröffentlichung auffällt.
-- **FB-08 · Der Auslieferungsstand ist nicht notarisiert.** Gehört zu B09, wirkt aber
-  hier: Sparkle installiert ein Artefakt, das Gatekeeper auf fremden Rechnern beanstandet.
+## Entschiedene Fragen
 
-## Offene Fragen
-
-- **OF-01** · Soll sich die App unbeaufsichtigt aktualisieren dürfen? Heute tut sie es
-  (AK-10), ohne dass die Oberfläche das anbietet oder zurücknehmen kann. Drei Wege:
-  einen zweiten Schalter ergänzen, `SUAutomaticallyUpdate` beim Start hart auf `false`
-  setzen, oder es bewusst so lassen und dokumentieren. — *Betreiber, vor dem nächsten
-  Release.*
-- **OF-02** · Welcher Zweig trägt künftig den Feed (FB-01)? Umstellen auf `main` erreicht
-  bestehende Installationen erst über ein Update, das noch von `master` kommt — die
-  Reihenfolge ist also nicht beliebig. Alternative: `master` bleibt reiner Feed-Zweig und
-  wird bei jedem Release mitgezogen. — *Betreiber, vor dem nächsten Release.*
-- **OF-03** · Soll der appcast signiert werden (FB-06)? Kostet einen zusätzlichen Schritt
-  je Release und schließt den Downgrade-Weg. — *Betreiber, ohne Frist.*
+- **OF-01 ✅ Die App darf sich unbeaufsichtigt aktualisieren — aber nur, wenn der Nutzer es
+  will.** Der zweite Schalter macht die Stufe sichtbar und abschaltbar, statt sie
+  stillschweigend aktiv zu lassen.
+- **OF-02 ✅ Der Feed bleibt auf `master`.** Ein Wechsel auf `main` erreicht bestehende
+  Installationen erst über ein Update, das noch von `master` käme — die Umstellung wäre also
+  genau einmal riskant, ohne Gewinn. Stattdessen zieht `release.sh` `master` bei jedem
+  Release mit und weist ausdrücklich darauf hin.
+- **OF-03 ✅ Der appcast wird standardmäßig nicht signiert.** Die enclosure-Signatur
+  beweist die Echtheit jedes Artefakts; unsigniert bleibt nur die Aussage, *welche* Fassung
+  die neueste ist (Downgrade). Der Abruf läuft über HTTPS gegen GitHub, was den Angriff
+  unpraktisch macht — während ein signierter Feed jede Handänderung an `appcast.xml`
+  ungültig machen würde und Updates dann gar nicht mehr ankämen. Für ein Projekt mit
+  handgeschnittenen Releases ist das die größere Gefahr. Über `SIGN_FEED=true` jederzeit
+  aktivierbar.
 
 ## Decision Log
 

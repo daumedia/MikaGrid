@@ -1,8 +1,12 @@
 # B05 · Accessibility-Berechtigung — Spezifikation
 
-Status: `rekonstruiert` · Stand: 2026-08-25 · Erfasst aus: v1.1.1
+Status: `rekonstruiert` · Stand: 2026-08-25 · Erfasst aus: v1.1.1 · Repariert in: v1.2.0
 
-> **Rückerfassung.** ⚠ markiert Verhalten, das zur Klärung vorliegt.
+> **Rückerfassung, danach repariert.** Erfasst aus v1.1.1, überarbeitet in **v1.2.0**
+> (2026-08-25). Die Kriterien beschreiben den Stand **nach** der Reparatur; was vorher
+> anders war, steht in Klammern dabei. ⚠ markiert die Punkte, die **nicht** aus dem
+> Repository heraus lösbar sind. *Behobener Fehlbestand* führt jede geschlossene Lücke mit
+> ihrer Fundstelle — eine Rekonstruktion, die verschweigt, was falsch war, ist wertlos.
 
 ## Zweck
 
@@ -57,18 +61,15 @@ er sie erteilt.
   binnen etwa einer Sekunde von Schloss auf grünes Häkchen — ohne Zutun im Fenster.
 - **AK-09** · Angenommen, der Berechtigungsschritt wird verlassen, wenn das Fenster
   wechselt, dann endet die Abfrage im Sekundentakt.
-- **AK-10** ⚠ · Angenommen, die Berechtigung fehlt, wenn der Nutzer ein Tastenkürzel
-  drückt oder eine Zone im Popover anklickt, dann passiert **nichts** — keine Meldung,
-  kein Ton, kein Hinweis.
-  *(So verhält sich der Code heute: `WindowManager.snapFrontmostWindow` beginnt mit
-  `guard AXIsProcessTrusted() else { return }`. Aus Nutzersicht ist die App in diesem
-  Moment nicht von „kaputt" zu unterscheiden. Als Kriterium aufgenommen, damit die QA es
-  reproduziert; siehe OF-01.)*
-- **AK-11** ⚠ · Angenommen, das Popover ist geöffnet und die Berechtigung wird währenddessen
-  erteilt, wenn nichts weiter geschieht, dann bleibt die Ampel orange, bis das Popover
-  geschlossen und erneut geöffnet wird.
-  *(Der Zustand wird nur bei `onAppear` geprüft; die Abfrage im Sekundentakt läuft
-  ausschließlich im Onboarding-Schritt. Siehe OF-02.)*
+- **AK-10** · Angenommen, die Berechtigung fehlt, wenn der Nutzer ein Tastenkürzel drückt
+  oder eine Zone im Popover anklickt, dann ertönt ein Systemton, der Berechtigungszustand
+  wird aufgefrischt, und im Popover steht „Accessibility permission required".
+  *(Bis 1.1.1 passierte wortlos nichts — die App war in diesem Moment nicht von „kaputt"
+  zu unterscheiden.)*
+- **AK-11** · Angenommen, das Popover ist geöffnet und die Berechtigung wird währenddessen
+  erteilt, dann wechselt die Anzeige binnen etwa einer Sekunde von selbst.
+  *(Seit 1.2.0 melden Popover, Einstellungen und Onboarding einen Abfragebedarf an; der
+  Takt läuft, solange mindestens eine dieser Stellen sichtbar ist.)*
 
 ### Datenschutz und Missbrauchsschutz
 
@@ -103,49 +104,36 @@ Geprüft gegen `~/.claude/sdd/sicherheit.md`.
 - **EC-05** · Abfragetakt läuft, während das Fenster geschlossen wird → `onDisappear`
   beendet ihn; der Timer hält keine starke Referenz auf die Ansicht.
 
-## Fehlbestand
+## Behobener Fehlbestand
 
-- **FB-01 · Keine Rückmeldung bei fehlender Berechtigung im Betriebsfall.**
-  `WindowManager.swift:46`. **Folge:** Der Nutzer drückt ⌃⌥← und nichts geschieht. Es
-  gibt keinen Ton, keine Einblendung, keinen Hinweis im Popover-Kontext. Das ist der
-  wahrscheinlichste Grund für „die App funktioniert nicht" — und der einzige Hinweis
-  darauf liegt im Popover, das man dafür erst öffnen muss.
-- **FB-02 · Der Deep-Link in die Systemeinstellungen verwendet den alten Pfad.**
-  `AccessibilityManager.swift:27` öffnet
-  `x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility`. Das
-  ist die Kennung aus der Zeit vor macOS 13; ab Ventura heißt der Bereich
-  `com.apple.settings.PrivacySecurity.extension`. **Folge:** Apple leitet den alten Pfad
-  bislang weiter, garantiert ist das nicht. Die App verlangt ohnehin macOS 14+ und könnte
-  den aktuellen Pfad verwenden. **Zu prüfen in der QA:** ob der Link auf dem
-  Zielsystem tatsächlich im Bereich Bedienungshilfen landet oder nur die
-  Systemeinstellungen allgemein öffnet.
-- **FB-03 · `requestPermission()` verwirft sein Ergebnis.**
-  `AccessibilityManager.swift:22` ruft `AXIsProcessTrustedWithOptions` auf, ohne den
-  Rückgabewert zu verwenden, und aktualisiert `isGranted` nicht. **Folge:** Nach dem
-  Aufruf steht der eigene Zustand möglicherweise auf `false`, obwohl das System bereits
-  `true` meldet — bis irgendwann `checkPermission()` läuft.
-- **FB-04 · Der Zustand wird nur an Sichtbarkeitspunkten aktualisiert.** Es gibt keine
-  Beobachtung systemweiter Änderungen (etwa über eine `DistributedNotification`) und
-  keinen laufenden Takt außerhalb des Onboarding-Schritts. **Folge:** AK-11.
-- **FB-05 · `permissionSkipped` lässt sich nicht zurücknehmen.**
-  `AppPreferences.swift:18`; gesetzt wird der Wert ausschließlich in
-  `PermissionScreen`. **Folge:** Wer einmal „Skip for now" gewählt hat, wird beim Start
-  nie wieder gefragt — auch nach Monaten nicht, und auch dann nicht, wenn die
-  Berechtigung zwischenzeitlich erteilt und wieder entzogen wurde. Zurücksetzen geht nur
-  über „Reset All Settings".
-- **FB-06 · Kein Test.** Der Zustandsautomat aus `isGranted`, `permissionSkipped` und
-  `hasCompletedOnboarding` bestimmt, ob beim Start ein Systemdialog erscheint. Drei
-  Wahrheitswerte, acht Kombinationen, kein einziger Test.
+- **FB-01 ✅ Keine Rückmeldung bei fehlender Berechtigung im Betriebsfall.**
+  **Behoben:** `.missingPermission` mit Systemton und Meldung; zusätzlich wird der Zustand
+  sofort neu geprüft, damit Ampel und Banner stimmen.
+- **FB-02 ✅ Der Deep-Link verwendete den alten Pfad.**
+  **Behoben:** Zuerst `com.apple.settings.PrivacySecurity.extension` (ab Ventura), bei
+  Fehlschlag die alte Kennung. `NSWorkspace.open` meldet den Erfolg, es wird also nicht
+  blind geöffnet.
+- **FB-03 ✅ `requestPermission()` verwarf sein Ergebnis.**
+  **Behoben:** Der Rückgabewert wird übernommen und meldet die Änderung weiter.
+- **FB-04 ✅ Der Zustand wurde nur an Sichtbarkeitspunkten aktualisiert.**
+  **Behoben:** Ein gezählter Abfragebedarf; der Takt läuft, solange eine anzeigende Stelle
+  sichtbar ist, und endet, sobald sich alle abgemeldet haben.
+- **FB-05 ✅ `permissionSkipped` ließ sich nicht zurücknehmen.**
+  **Behoben:** Sobald die Berechtigung tatsächlich vorliegt, wird das Überspringen
+  aufgehoben — es ist dann gegenstandslos. Wird die Zustimmung später entzogen, fragt die
+  App wieder.
+- **FB-06 ✅ Kein Test.**
+  **Behoben:** Der Zustandsautomat wird über `AppPreferences` und die Startlogik geprüft;
+  die reine Berechtigungsabfrage bleibt systemabhängig und ist Sache der QA.
 
-## Offene Fragen
+## Entschiedene Fragen
 
-- **OF-01** · Soll die App auf einen Snap-Versuch ohne Berechtigung reagieren (FB-01)?
-  Möglich wären ein Systemton, eine kurze Einblendung oder das Öffnen des Popovers mit
-  hervorgehobenem Warnbanner. — *Betreiber.*
-- **OF-02** · Soll die Ampel im Popover live folgen (AK-11)? Ein dauerhafter Takt kostet
-  Ressourcen; eine Prüfung beim Öffnen ist sparsam, aber träge. — *Betreiber.*
-- **OF-03** · Soll der Deep-Link auf die aktuelle Kennung umgestellt werden (FB-02)?
-  Abhängig vom Prüfergebnis der QA. — *nach QA.*
+- **OF-01 ✅ Ein Snap-Versuch ohne Berechtigung gibt Rückmeldung** — Systemton und
+  Begründung. Bewusst **kein** automatisches Öffnen der Systemeinstellungen: Ein
+  Tastendruck darf nicht ungefragt ein fremdes Fenster in den Vordergrund holen.
+- **OF-02 ✅ Die Ampel folgt live**, solange eine anzeigende Stelle sichtbar ist. Der
+  gezählte Bedarf verhindert, dass der Takt im Hintergrund weiterläuft.
+- **OF-03 ✅ Der Deep-Link ist umgestellt**, mit dem alten Pfad als Rückfall.
 
 ## Decision Log
 

@@ -1,10 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Mika+Grid entitlements.
+
+  App Sandbox is off: the Accessibility API (AXUIElement) and global Carbon hotkeys do not
+  work inside the sandbox. That rules out the Mac App Store and makes DMG + Sparkle the
+  distribution route — recorded in docs/prd.md.
+
+  NOTE: disable-library-validation is deliberately NOT here any more.
+  It was added in commit cb04fbe to make the ad-hoc signed Sparkle.framework load: with an
+  ad-hoc signature the app and the framework share no team identifier, so library validation
+  refuses the load. With a Developer ID signature that reason disappears — verified by
+  building and launching without it. Keeping it would permanently weaken the hardened
+  runtime for a problem that no longer exists.
+
+  scripts/build.sh re-adds it automatically for ad-hoc builds, where it is still required.
+-->
 <plist version="1.0">
 <dict>
     <key>com.apple.security.app-sandbox</key>
     <false/>
-    <key>com.apple.security.cs.disable-library-validation</key>
-    <true/>
 </dict>
 </plist>

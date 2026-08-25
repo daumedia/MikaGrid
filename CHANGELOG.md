@@ -1,5 +1,92 @@
 # Changelog
 
+## [1.2.0] - 2026-08-25
+
+Hardening release. Every gap recorded during the SDD capture (`docs/`, `features/`) is
+addressed here — 73 findings across ten features, plus the first test suite the project
+has ever had.
+
+### Security & distribution
+- **Releases are signed with a Developer ID** instead of ad-hoc. `scripts/build.sh` picks
+  the identity up automatically and falls back to ad-hoc only for local builds
+- **`disable-library-validation` is gone.** It was added to make the ad-hoc signed
+  Sparkle.framework load; with a Developer ID signature the reason disappears, which was
+  verified by building and launching without it. The hardened runtime is no longer weakened
+  in normal builds — the entitlement is re-added automatically for ad-hoc builds only
+- **`codesign --deep` removed from signing.** It re-signed every nested component with the
+  app's entitlements, undoing the careful inside-out signing above it and imprinting
+  `disable-library-validation` onto Sparkle's XPC services, which ship with none
+- **A missing Sparkle.framework is now a hard error** instead of being skipped silently,
+  which used to produce a bundle that could not update and crashed at launch
+- **`scripts/release.sh`** builds, signs, notarises (with `NOTARY_PROFILE`), packages,
+  generates the appcast signature and verifies that `Info.plist`, `CHANGELOG.md`,
+  `appcast.xml` and `web/lib/app.ts` agree — three steps that were manual and unchecked
+- **The DMG is signed**; universal builds (`--universal`) cover Apple Silicon and Intel
+- **appcast.xml**: `sparkle:version` now carries the build number everywhere, and the
+  1.0.0 entry — which had no enclosure and pointed at a release that never existed — is gone
+
+### Fixed
+- **Failed snaps no longer fail silently.** All six abort paths returned nothing at all, so
+  a missing permission looked exactly like a broken app. Every failure now produces a system
+  beep and, in the popover, a reason
+- **Restore survives a title change.** The undo history was keyed by process ID and window
+  title, so switching a browser tab or saving a file lost the entry — and made all untitled
+  windows of one app collide. The key is now the system window number
+- **Repeated snapping keeps the original frame.** ⌃⌥← followed by ⌃⌥→ used to overwrite the
+  restore point with the left half; the original size was gone
+- **The centre zone preview showed ~80 % × 69 % instead of two thirds.** The popover rebuilt
+  all eleven zones by hand; they are now derived from the real target geometry
+- **A snap action added in a future release would have had no shortcut** on existing
+  installs: missing bindings are backfilled with their defaults, and stored bindings now
+  carry a schema version
+- **Failed hotkey registration is visible.** A combination already held by another app was
+  silently dropped while Preferences kept showing it as active
+- **Reserved system shortcuts are rejected** — you can no longer bind ⌘Q to "Maximize"
+- **Cancelling the onboarding no longer counts as completing it.** Esc or the close button
+  marked it done, so a user who wanted to look at it later never saw it again
+- **"Reset All Settings" returns to the factory state.** It re-set the onboarding flag to
+  "completed" immediately after clearing it, and left every Sparkle preference untouched
+- **The About window is reachable again.** 1.1.0 replaced the popover's "About" button with
+  "Updates" and took the only trigger with it, leaving 85 lines of unreachable code
+- **Login item failures are shown** instead of being written to the console while the toggle
+  kept claiming success
+- Full-screen windows are detected explicitly rather than assumed to be non-settable
+- The last-active foreign app is forgotten when it quits, so its process ID cannot be reused
+- Snap history is capped at 100 entries and cleared when displays change
+- `NSScreen.primaryHeight` returns `nil` instead of a silent `0` that made every coordinate wrong
+- The keyboard monitor of the shortcut recorder is released when the window closes
+- The permission step advances exactly once instead of spawning a task per tick
+- The onboarding shortcut list shows the actual bindings, not a hardcoded copy
+- The launch-at-login toggle reads the real system state instead of defaulting to "on"
+
+### Added
+- **`Tests/` — 45 tests**, the first in the project: snap geometry (halves tile without a
+  gap on fractional displays, quarters cover exactly, centre is two thirds), shortcut
+  persistence including the backfill and schema-version cases, window history including
+  eviction, and the failure reasons. One of them caught a real bug in this release's own
+  preview fix
+- **`.github/workflows/ci.yml`** — build, test, sign, website build and a version
+  consistency check on every push
+- **`scripts/check-web-sync.mjs`** verifies that `web/lib` still mirrors the Swift sources
+- **Second update toggle**: "Install updates automatically" was active on disk but had no
+  control in the app
+- **Update failures are reported** — Sparkle ran without a delegate, so a permanently dead
+  update path was invisible to everyone
+- **`LICENSE`** — the README, the site and the structured data all promised MIT while the
+  file did not exist
+- **Privacy and legal pages** on the website, plus `docs/datenschutz.md`
+- **Accessibility**: labels and hints on the snap zones, status shown by icon as well as
+  colour, a Back button in the onboarding
+- ⌘, and ⌘Q work while the popover is open — a menu bar app has no application menu
+
+### Changed
+- Accessibility deep link uses the current System Settings identifier, with the pre-Ventura
+  one as fallback
+- "Skip for now" is withdrawn automatically once the permission is actually granted
+- The popover keeps its permission indicator up to date while it is open
+- The onboarding uses its own step switcher instead of a `TabView` that would draw an
+  unlabelled tab bar on macOS
+
 ## [1.1.1] - 2026-08-08
 
 ### Fixed

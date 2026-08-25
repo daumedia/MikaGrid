@@ -15,6 +15,7 @@ struct MikaGridApp: App {
             PopoverGridView(appState: appDelegate.appState)
         } label: {
             Image(systemName: "square.grid.3x3")
+                .accessibilityLabel("Mika+Grid")
         }
         .menuBarExtraStyle(.window)
     }
@@ -33,15 +34,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         appState.setup()
 
-        // Show onboarding on first launch
+        // Onboarding erscheint, bis der Nutzer es tatsächlich abgeschlossen hat. Ein Abbruch
+        // per Esc oder Fenstertaste zählt seit 1.2.0 nicht mehr als Abschluss.
         if !appState.preferences.hasCompletedOnboarding {
             showOnboarding()
-        } else if !appState.preferences.permissionSkipped {
-            // Check accessibility after onboarding was completed
-            appState.accessibilityManager.checkPermission()
-            if !appState.accessibilityManager.isGranted {
-                appState.accessibilityManager.requestPermission()
-            }
+        } else if !appState.preferences.permissionSkipped,
+                  !appState.accessibilityManager.checkPermission() {
+            appState.accessibilityManager.requestPermission()
         }
 
         // Listen for notifications from popover

@@ -8,6 +8,9 @@ import SwiftUI
 
 @MainActor
 final class PreferencesWindowController: NSObject, NSWindowDelegate {
+    /// Einzige Quelle für das Fenstermaß — bis 1.1.1 stand es zusätzlich im SwiftUI-Rahmen.
+    static let windowSize = NSSize(width: 580, height: 420)
+
     private var window: NSWindow?
     private let appState: AppState
     private let onShowOnboarding: () -> Void
@@ -25,7 +28,7 @@ final class PreferencesWindowController: NSObject, NSWindowDelegate {
         }
 
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 580, height: 420),
+            contentRect: NSRect(origin: .zero, size: Self.windowSize),
             styleMask: [.titled, .closable],
             backing: .buffered,
             defer: false

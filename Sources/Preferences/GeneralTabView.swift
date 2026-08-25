@@ -19,9 +19,21 @@ struct GeneralTabView: View {
             GroupBox {
                 VStack(alignment: .leading, spacing: 12) {
                     Toggle("Launch Mika+Grid at login", isOn: $launchAtLogin)
-                        .onChange(of: launchAtLogin) { _, newValue in
+                        .onChange(of: launchAtLogin) { oldValue, newValue in
+                            // Beim Anzeigen setzt onAppear den Schalter auf den Systemzustand;
+                            // das löst onChange aus, ohne dass der Nutzer etwas getan hat.
+                            guard oldValue != newValue, newValue != appState.launchAtLoginManager.isEnabled else { return }
                             appState.launchAtLoginManager.setEnabled(newValue)
+                            // Zurücklesen: Bei einem Fehlschlag springt der Schalter zurück,
+                            // statt einen Zustand zu behaupten, den das System nicht hat.
+                            launchAtLogin = appState.launchAtLoginManager.isEnabled
                         }
+
+                    if let error = appState.launchAtLoginManager.lastError {
+                        Label("Login item failed: \(error)", systemImage: "exclamationmark.triangle.fill")
+                            .font(.caption)
+                            .foregroundStyle(.orange)
+                    }
 
                     Divider()
 
@@ -47,10 +59,19 @@ struct GeneralTabView: View {
 
             GroupBox("Updates") {
                 VStack(alignment: .leading, spacing: 12) {
-                    Toggle("Automatic updates", isOn: Binding(
+                    Toggle("Check for updates automatically", isOn: Binding(
                         get: { appState.sparkleUpdater.automaticallyChecksForUpdates },
                         set: { appState.sparkleUpdater.automaticallyChecksForUpdates = $0 }
                     ))
+
+                    // Zweite Stufe: Bis 1.1.1 zeigte die App nur den Schalter darüber, während
+                    // Sparkle Updates im Hintergrund bereits selbsttätig INSTALLIERTE. Wer das
+                    // abstellen wollte, fand in der App keinen Weg dazu.
+                    Toggle("Install updates automatically", isOn: Binding(
+                        get: { appState.sparkleUpdater.automaticallyDownloadsUpdates },
+                        set: { appState.sparkleUpdater.automaticallyDownloadsUpdates = $0 }
+                    ))
+                    .disabled(!appState.sparkleUpdater.automaticallyChecksForUpdates)
 
                     Divider()
 
@@ -64,6 +85,13 @@ struct GeneralTabView: View {
                         Button("Check Now") {
                             appState.sparkleUpdater.checkForUpdates()
                         }
+                        .disabled(!appState.sparkleUpdater.canCheckForUpdates)
+                    }
+
+                    if let error = appState.sparkleUpdater.lastCheckError {
+                        Label("Update check failed: \(error)", systemImage: "exclamationmark.triangle.fill")
+                            .font(.caption)
+                            .foregroundStyle(.orange)
                     }
                 }
                 .padding(4)

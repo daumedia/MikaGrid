@@ -43,6 +43,14 @@ export function Hero() {
 
           <DownloadMeta className="mt-5" />
 
+          <p className="mx-auto mt-3 max-w-md text-xs leading-relaxed text-teal-lightest/40">
+            Signed with a Developer ID. On first launch macOS may still ask you to
+            confirm — right-click the app and choose Open.{" "}
+            <a href="#faq" className="underline underline-offset-4 hover:text-teal-lightest/70">
+              Why?
+            </a>
+          </p>
+
           <div className="mt-10 flex flex-wrap items-center justify-center gap-x-3 gap-y-2 text-sm text-teal-lightest/50">
             <span className="inline-flex items-center gap-3 whitespace-nowrap">
               Try it: <KbdCombo keys={["⌃", "⌥", "←"]} />

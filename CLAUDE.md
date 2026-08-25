@@ -24,9 +24,11 @@ Erfasst am 2026-08-25 über `sdd-erfassen`, Phase 1 und 2 vollständig. Alle Dok
 nicht was er tun sollte. Jedes trägt einen Abschnitt *Fehlbestand* mit den Lücken, die
 dabei aufgefallen sind.
 
-Alle zehn Features stehen auf `rekonstruiert` — 148 Akzeptanzkriterien, davon 26 mit ⚠
-markiert („das tut der Code heute, soll er das?"), 73 Fehlbestand-Einträge, 30 offene
-Fragen. Nächster Schritt ist `/sdd-qa B08`; die Reihenfolge steht in `features/index.md`.
+Alle zehn Features stehen auf `rekonstruiert`. Der bei der Erfassung gefundene Fehlbestand
+wurde in **v1.2.0** abgearbeitet: von 73 Lücken sind 71 geschlossen, von 30 offenen Fragen
+28 entschieden. Offen bleiben zwei Punkte, die Zugangsdaten außerhalb des Repositories
+verlangen — die Notarisierung und die Veröffentlichung der Landingpage; beide stehen in
+`features/index.md` unter „Was offen bleibt".
 
 **Beim Arbeiten am Code:** Die Spec des betroffenen Features ist eine *Rekonstruktion*
 und kann selbst falsch sein — anders als bei einer Spec, die vor dem Code entstand. Wer
@@ -152,6 +154,11 @@ Brand tokens live in `web/app/globals.css` (`@theme`) and mirror
 
 - **AppState** — `@Observable @MainActor` central state holding all managers
 - **WindowManager** — uses `AXUIElementCreateApplication()` + `kAXFocusedWindowAttribute` to get/set window position and size
+- **Snap-Ergebnis** — `snapFrontmostWindow` liefert ein `SnapResult`; `AppState.performSnap` erzeugt daraus Systemton und Meldung. Kein Fehlerpfad darf wieder still enden
+- **Historien-Schlüssel** — `WindowKey` trägt das `AXUIElement` des Fensters (`CFEqual`/`CFHash`). **Nicht** auf Titel oder PID zurückbauen: Der Titel brach bei jeder Änderung, kollidierte bei titellosen Fenstern und legte Personenbeziehbares in den Speicher
+- **Vorschau im Popover** — kommt aus `SnapAction.previewRect`, nicht aus handgebauten Stapeln. `previewRect` rechnet im Einheitsquadrat und **darf nicht runden**; `targetFrame` rundet immer
+- **Signatur** — `scripts/build.sh` signiert von innen nach außen und **ohne `--deep`**. `--deep` überschreibt die inneren Signaturen und prägt Sparkles XPC-Diensten die App-Entitlements auf
+- **`disable-library-validation`** — steht nicht mehr in den Entitlements. Nur Ad-hoc-Bauten bekommen sie automatisch; mit Developer ID ist sie entbehrlich
 - **Snap write sequence — do not "simplify"** — `applyFrame` writes **size → position → size**, not position → size. macOS constrains a position write against the window's *current* size (`NSWindow.constrainFrameRect:toScreen:`), so an oversized window cannot be moved to a target edge until it has been shrunk first. Before writing, `AXEnhancedUserInterface` is temporarily disabled on the **app** element (Chromium/Electron/Java apps and anything under VoiceOver set it; AppKit then *animates* AX frame changes and the size write cancels the position animation) and always restored via `defer`. Afterwards the frame is read back and corrected in up to 3 passes (2 pt tolerance), aborting on stagnation or a 0.6 s deadline
 - **AX timeouts** — `AXUIElementSetMessagingTimeout(_, 0.25)` on both app and window element; it applies per object, so it must be set on each. Without it a blocked target app freezes the menu bar
 - **Snap target** — `NSWorkspace.shared.frontmostApplication`, unless that is Mika+Grid itself (the `.menuBarExtraStyle(.window)` popover makes the app frontmost); then the cached last-active foreign PID from `didActivateApplicationNotification` is used
@@ -175,11 +182,20 @@ Brand tokens live in `web/app/globals.css` (`@theme`) and mirror
 
 ## Build & Run
 ```bash
-swift build              # Debug build
-swift build -c release   # Release build
-bash build.sh            # Build + app bundle + codesign
-open build/Mika+Grid.app # Launch
+swift build                      # Debug build
+swift test                       # 45 tests — run these before touching geometry or hotkeys
+bash build.sh                    # Build + app bundle + codesign (Developer ID if available)
+bash build.sh --universal        # arm64 + x86_64
+open build/Mika+Grid.app         # Launch
 ```
+
+## Release
+```bash
+bash scripts/release.sh --check  # Info.plist, CHANGELOG, appcast und web/lib abgleichen
+bash scripts/release.sh          # bauen, signieren, notarisieren, DMG, appcast-Signatur
+node scripts/check-web-sync.mjs  # web/lib gegen die Swift-Quellen prüfen
+```
+Notarisierung läuft, sobald `NOTARY_PROFILE` ein hinterlegtes `notarytool`-Profil nennt.
 
 ## Create DMG Installer
 ```bash

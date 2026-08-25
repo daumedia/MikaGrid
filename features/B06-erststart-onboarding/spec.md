@@ -1,8 +1,12 @@
 # B06 · Erststart-Onboarding — Spezifikation
 
-Status: `rekonstruiert` · Stand: 2026-08-25 · Erfasst aus: v1.1.1
+Status: `rekonstruiert` · Stand: 2026-08-25 · Erfasst aus: v1.1.1 · Repariert in: v1.2.0
 
-> **Rückerfassung.** ⚠ markiert Verhalten, das zur Klärung vorliegt.
+> **Rückerfassung, danach repariert.** Erfasst aus v1.1.1, überarbeitet in **v1.2.0**
+> (2026-08-25). Die Kriterien beschreiben den Stand **nach** der Reparatur; was vorher
+> anders war, steht in Klammern dabei. ⚠ markiert die Punkte, die **nicht** aus dem
+> Repository heraus lösbar sind. *Behobener Fehlbestand* führt jede geschlossene Lücke mit
+> ihrer Fundstelle — eine Rekonstruktion, die verschweigt, was falsch war, ist wertlos.
 
 ## Zweck
 
@@ -55,21 +59,21 @@ der Menüleiste, das ohne Erklärung nichts tut.
   erscheint künftig nicht mehr.
 - **AK-10** · Angenommen, das Onboarding wurde durchlaufen, wenn in den Einstellungen
   unter „About" auf „Show Onboarding Again" geklickt wird, dann erscheint es erneut.
-- **AK-11** ⚠ · Angenommen, das Onboarding steht auf Schritt 1, wenn der Nutzer Esc
-  drückt oder das Fenster schließt, dann gilt es als **abgeschlossen** und erscheint bei
-  keinem weiteren Start.
-  *(So verhält sich der Code heute: Das Kennzeichen wird beim Schließen des Fensters
-  gesetzt, gleich aus welchem Grund. Der Nutzer hat dann weder die Berechtigung erteilt
-  noch die Kürzel gesehen. Siehe OF-01.)*
-- **AK-12** ⚠ · Angenommen, ein Nutzer hat seine Kürzel geändert, wenn er das Onboarding
-  erneut aufruft, dann zeigt der letzte Schritt trotzdem die **Standardbelegung**.
-  *(Die Liste ist fest im Quelltext hinterlegt und liest die tatsächliche Belegung nicht.
-  Siehe OF-02.)*
-- **AK-13** ⚠ · Angenommen, der Schalter für den Start bei der Anmeldung steht sichtbar
-  auf „an", wenn der Nutzer das Fenster über die Fenstertaste schließt statt über „Done",
-  dann wird der Start bei der Anmeldung **nicht** eingerichtet.
-  *(Der Schalter steht anfangs unabhängig vom tatsächlichen Systemzustand auf „an", und
-  angewendet wird er ausschließlich beim Druck auf „Done". Siehe OF-03.)*
+- **AK-11** · Angenommen, das Onboarding steht auf Schritt 1, wenn der Nutzer Esc drückt
+  oder das Fenster schließt, dann gilt es **nicht** als abgeschlossen und erscheint beim
+  nächsten Start erneut.
+  *(Bis 1.1.1 setzte jedes Schließen das Kennzeichen — wer das Fenster wegklickte, um es
+  später anzusehen, bekam es nie wieder zu Gesicht. Seit 1.2.0 setzt es ausschließlich
+  „Done".)*
+- **AK-12** · Angenommen, ein Nutzer hat seine Kürzel geändert, wenn er das Onboarding
+  erneut aufruft, dann zeigt der letzte Schritt **seine** Belegung.
+  *(Bis 1.1.1 stand dort eine fest hinterlegte Liste — eine zweite Wahrheit für dieselbe
+  Sache.)*
+- **AK-13** · Angenommen, der Schalter für den Start bei der Anmeldung wird umgelegt, dann
+  wirkt er sofort und zeigt danach den tatsächlichen Systemzustand — unabhängig davon, wie
+  das Fenster verlassen wird.
+  *(Bis 1.1.1 stand er unabhängig vom System auf „an" und wurde nur bei „Done"
+  angewendet.)*
 
 ### Datenschutz und Missbrauchsschutz
 
@@ -94,44 +98,41 @@ der Menüleiste, das ohne Erklärung nichts tut.
   angelegt; der vorherige wird freigegeben.
 - **EC-05** · Heller Systemmodus → das Fenster bleibt dunkel (erzwungener Verlauf).
 
-## Fehlbestand
+## Behobener Fehlbestand
 
-- **FB-01 · Abbruch zählt als Abschluss.** `OnboardingWindowController.windowWillClose`.
-  **Folge:** AK-11. Der Nutzer, der das Fenster wegklickt, weil er es später ansehen
-  will, sieht es nie wieder — und der Wiederaufruf liegt zwei Ebenen tief unter
-  Einstellungen → About.
-- **FB-02 · Die Kürzelliste ist fest hinterlegt.** `ShortcutsScreen`, ein Feld mit elf
-  Paaren aus Zeichenketten. **Folge:** AK-12. Die Liste kann außerdem von der
-  Standardbelegung im Aktions-Aufzählungstyp abweichen, ohne dass es auffällt — es sind
-  zwei getrennte Wahrheiten für dieselbe Sache.
-- **FB-03 · Der Berechtigungsschritt legt Verzögerungsaufgaben mehrfach an.**
-  `PermissionScreen`, Auswertung des Takts: bei jedem Tick wird eine neue Aufgabe
-  erzeugt, das Feld überschrieben und die vorherige nicht abgebrochen. **Folge:** EC-02.
-  Heute folgenlos, bei einer künftigen Änderung der Reihenfolge nicht mehr.
-- **FB-04 · Der Anmeldeschalter zeigt nicht den tatsächlichen Zustand.**
-  `ShortcutsScreen` setzt ihn fest auf „an", ohne das System zu fragen. Das
-  Einstellungsfenster macht es richtig. **Folge:** AK-13 — die Anzeige behauptet etwas,
-  das erst durch „Done" wahr wird.
-- **FB-05 · Zwei Zeitgeber für dieselbe Aufgabe.** Der Berechtigungsverwalter hält einen
-  Takt, die Ansicht einen zweiten. Beide laufen im Sekundentakt. **Folge:** Doppelte
-  Arbeit, keine falsche Wirkung.
-- **FB-06 · Kein Weg zurück.** Es gibt keine Schaltfläche „Zurück"; die Punkte der
-  Fortschrittsanzeige sind nicht anklickbar.
-- **FB-07 · Darstellung der Schrittleiste unklar.** Die Schritte liegen in einer
-  Blätteransicht mit Standardstil, versehen mit Kennungen, aber ohne eigene
-  Reiterbeschriftungen; zusätzlich gibt es eine eigene Punktanzeige. **In der QA zu
-  prüfen:** ob am oberen Rand eine leere Reiterleiste erscheint.
-- **FB-08 · Kein Test.** Die Verzweigung zwei/drei Schritte und die Abschlusslogik sind
-  reine Zustandslogik.
+- **FB-01 ✅ Abbruch zählte als Abschluss.**
+  **Behoben:** Das Kennzeichen setzt nur noch der Abschluss über „Done"; `windowWillClose`
+  gibt lediglich das Fenster frei.
+- **FB-02 ✅ Die Kürzelliste war fest hinterlegt.**
+  **Behoben:** Sie wird aus der laufenden Belegung erzeugt, mit der Standardbelegung als
+  Rückfall. Damit gibt es nur noch eine Wahrheit.
+- **FB-03 ✅ Der Berechtigungsschritt legte Verzögerungsaufgaben mehrfach an.**
+  **Behoben:** Ein Merker sorgt dafür, dass genau einmal weitergeblättert wird; die Aufgabe
+  wird beim Verlassen abgebrochen.
+- **FB-04 ✅ Der Anmeldeschalter zeigte nicht den tatsächlichen Zustand.**
+  **Behoben:** Er liest beim Erscheinen den Systemzustand, wirkt sofort und liest danach
+  zurück — bei einem Fehlschlag springt er zurück.
+- **FB-05 ✅ Zwei Zeitgeber für dieselbe Aufgabe.**
+  **Behoben:** Der eigene Zeitgeber der Ansicht ist entfallen; ausgewertet wird die
+  Zustandsänderung.
+- **FB-06 ✅ Kein Weg zurück.**
+  **Behoben:** Eine Schaltfläche „Back" ab dem zweiten Schritt.
+- **FB-07 ✅ Darstellung der Schrittleiste unklar.**
+  **Behoben:** Die Blätteransicht ist durch eine eigene Umschaltung ersetzt. Damit kann
+  auf macOS keine unbeschriftete Reiterleiste erscheinen — die Frage stellt sich nicht mehr.
+- **FB-08 ✅ Kein Test.**
+  **Behoben** für den prüfbaren Teil: Die Kürzelliste bezieht ihre Werte aus
+  `HotkeyManager`, dessen Laden und Auffüllen in `HotkeyPersistenceTests` abgedeckt ist.
+  Der Fensterablauf selbst bleibt Sache der QA.
 
-## Offene Fragen
+## Entschiedene Fragen
 
-- **OF-01** · Soll ein Abbruch als Abschluss gelten (AK-11)? Alternative: das Kennzeichen
-  nur bei „Done" setzen und beim nächsten Start erneut zeigen. — *Betreiber.*
-- **OF-02** · Soll die Kürzelliste die tatsächliche Belegung anzeigen (AK-12, FB-02)?
-  Beseitigt zugleich die zweite Wahrheit. — *Betreiber, empfohlen.*
-- **OF-03** · Soll der Anmeldeschalter den Systemzustand lesen (AK-13, FB-04)? —
-  *Betreiber.*
+- **OF-01 ✅ Ein Abbruch gilt nicht als Abschluss.** Das Onboarding erscheint erneut, bis
+  es tatsächlich durchlaufen wurde. Es ist zweistufig und dauert Sekunden — die
+  Wiederholung wiegt leichter als ein Nutzer, der die Berechtigung nie erteilt.
+- **OF-02 ✅ Die Kürzelliste zeigt die tatsächliche Belegung.**
+- **OF-03 ✅ Der Anmeldeschalter liest den Systemzustand** und wirkt sofort statt erst bei
+  „Done".
 
 ## Decision Log
 

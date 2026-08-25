@@ -2,7 +2,7 @@
 
 Stand: 2026-08-25 · Artefaktpfad: `docs/`
 
-> **Rekonstruktion aus dem Bestand (Version 1.1.1).** Alle Zahlen sind aus dem Quelltext
+> **Rekonstruktion aus dem Bestand, Stand v1.2.0.** Alle Zahlen sind aus dem Quelltext
 > ausgezählt, nicht geschätzt. Wo Wildwuchs steht, ist er **dokumentiert, nicht
 > bereinigt** — eine Aufräumaktion ist ein eigenes Feature mit eigener Spec, keine
 > Nebenwirkung der Erfassung.
@@ -166,30 +166,28 @@ Der Hover-Effekt der Rasterzonen ist unanimiert. Die Einstellung „Enable snap 
 wurde in 1.1.1 entfernt, weil sie von keiner Code-Stelle gelesen wurde — Snaps sind
 sprunghaft, und das ist beabsichtigt.
 
-## Fehlbestand
+## Fehlbestand — teils behoben, teils bewusst offen
 
-Lücken, keine Kriterien.
+| Lücke | Stand |
+|---|---|
+| Keine Barrierefreiheit | ✅ **behoben, soweit es die Bedienung betrifft:** Jede Rasterzone trägt Beschriftung und Hinweis samt Kürzel, das Raster ist als Gruppe ausgewiesen, die Fußzeilenbefehle sind beschriftet, die Berechtigungsanzeige nennt ihren Zustand im Klartext, dekorative Symbole sind ausgeblendet |
+| Statusfarben fehlten im Token-Satz | ✅ Die Anzeige unterscheidet jetzt über **Symbol und** Farbe; „Reset" und die Konfliktmeldung benutzen `destructive` statt `.red` |
+| Der Primärbutton war dreimal kopiert | ✅ Einmal als `onboardingPrimaryButton()` definiert |
+| Fenstermaße standen doppelt | ✅ Je eine Quelle im zuständigen Controller |
+| Die Rastervorschau kannte die echte Geometrie nicht | ✅ Aus `SnapAction.previewRect` abgeleitet, durch Tests abgesichert |
+| Drei tote Token, zwei wertgleiche Paare | ✅ `destructive` ist jetzt im Einsatz. `tealLightest` und `tealSurface` bleiben als Namen der Palette bestehen, die mit MikaScreenSnap und der Website geteilt wird — dort sind sie in Gebrauch |
 
-- **Keine Barrierefreiheit.** Kein einziges `accessibilityLabel`, kein
-  `accessibilityHint`, kein Dynamic Type, keine Prüfung auf „Bewegung reduzieren". Elf
-  Rasterzonen tragen als einzige Beschriftung 9-pt-Text; für VoiceOver ist die App
-  praktisch stumm. Das ist besonders schief bei einem Werkzeug, das selbst auf der
-  Accessibility-API aufsetzt und dessen Kernlogik `AXEnhancedUserInterface` gerade wegen
-  VoiceOver-Nutzern sorgfältig wiederherstellt.
-- **Kein heller Modus.** Onboarding und Über-Fenster erzwingen dunkle Flächen, Popover
-  und Einstellungen folgen dem System. Im hellen Systemmodus ist die App zweigeteilt.
-  Es gibt weder `.preferredColorScheme(.dark)` (das den Bruch wenigstens konsistent
-  machen würde) noch helle Varianten der Markenfarben.
+### Bewusst offen
+
+- **Kein Dynamic Type.** Elf feste Schriftgrößen. Eine Umstellung auf Textstile ändert das
+  Layout jeder Ansicht und ist damit ein eigenes Vorhaben, keine Reparatur.
+- **Kein heller Modus.** Onboarding und Über-Fenster erzwingen weiterhin dunkle Flächen,
+  Popover und Einstellungen folgen dem System. Die App ist im hellen Systemmodus also
+  weiterhin zweigeteilt.
 - **Keine Token für Typografie, Abstände und Radien.** Elf Schriftgrößen, zehn
-  Abstandsmaße, vier Radien — jeder Wert steht an seiner Verwendungsstelle. Eine
-  Änderung der Grundschriftgröße bedeutet 34 einzelne Fundstellen.
-- **Statusfarben fehlen im Token-Satz.** Grün, Orange und Rot sind hart im Code, obwohl
-  mit `destructive` bereits ein passendes, ungenutztes Token existiert.
-- **Drei Token sind tot, zwei Paare wertgleich.** Siehe Tabelle unter *Farben*.
-- **Der Primärbutton ist dreimal kopiert** statt einmal als `ButtonStyle` definiert.
-- **Fenstermaße stehen doppelt** (NSWindow-`contentRect` und SwiftUI-`frame`). Ändert
-  jemand nur eine Stelle, schneidet oder polstert das Fenster den Inhalt.
-- **Die Rastervorschau kennt die echte Geometrie nicht.** `SnapZoneButton` baut die
-  Zielflächen von Hand nach; `SnapAction.targetFrame` ist die Wahrheit. Die 2/3-Zone
-  wird in der Vorschau als `padding(4)` auf 40 × 26 dargestellt — das entspricht rund
-  80 % × 69 %, nicht 2/3 × 2/3. Vorschau und Wirkung weichen sichtbar voneinander ab.
+  Abstandsmaße, vier Radien.
+
+Diese drei gehören zusammen: Sie sind eine Gestaltungsaufgabe mit eigenem Umfang und
+eigenen Entscheidungen — ein neues Feature mit eigener Spec, das unter *Abhängigkeiten* auf
+B04, B06 und B07 verweist. Sie in eine Reparatur zu schmuggeln hieße, das Erscheinungsbild
+der App ohne Anforderung zu verändern.

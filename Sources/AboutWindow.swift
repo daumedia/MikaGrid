@@ -8,6 +8,8 @@ import SwiftUI
 
 @MainActor
 final class AboutWindowController: NSObject, NSWindowDelegate {
+    static let windowSize = NSSize(width: 320, height: 400)
+
     private var window: NSWindow?
 
     func showWindow() {
@@ -18,7 +20,7 @@ final class AboutWindowController: NSObject, NSWindowDelegate {
         }
 
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 320, height: 400),
+            contentRect: NSRect(origin: .zero, size: Self.windowSize),
             styleMask: [.titled, .closable],
             backing: .buffered,
             defer: false
@@ -49,6 +51,7 @@ struct AboutView: View {
                 .resizable()
                 .frame(width: 128, height: 128)
                 .foregroundStyle(Color.MikaPlus.tealPrimary)
+                .accessibilityHidden(true)
 
             Text("Mika+Grid")
                 .font(.system(size: 20, weight: .semibold))
