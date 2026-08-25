@@ -9,16 +9,16 @@ vor dem Code entstand und die Vorgabe war.
 
 | ID | Feature | Prio | Status | Abhängig von | Zuletzt |
 |---|---|---|---|---|---|
-| B01 | Fenster snappen | P0 | bestand | B05 | — |
-| B02 | Position wiederherstellen | P0 | bestand | B01 | — |
-| B03 | Globale Tastenkürzel | P0 | bestand | B01 | — |
-| B04 | Menüleisten-Popover | P0 | bestand | B01 | — |
-| B05 | Accessibility-Berechtigung | P0 | bestand | — | — |
-| B06 | Erststart-Onboarding | P1 | bestand | B05 | — |
-| B07 | Einstellungsfenster | P1 | bestand | B03, B05 | — |
-| B08 | Automatische Updates | P0 | bestand | — | — |
-| B09 | Build-, Signatur- und DMG-Kette | P0 | bestand | B08 | — |
-| B10 | Landingpage | P2 | bestand | B09 | — |
+| B01 | Fenster snappen | P0 | rekonstruiert | B05 | 2026-08-25 |
+| B02 | Position wiederherstellen | P0 | rekonstruiert | B01 | 2026-08-25 |
+| B03 | Globale Tastenkürzel | P0 | rekonstruiert | B01 | 2026-08-25 |
+| B04 | Menüleisten-Popover | P0 | rekonstruiert | B01 | 2026-08-25 |
+| B05 | Accessibility-Berechtigung | P0 | rekonstruiert | — | 2026-08-25 |
+| B06 | Erststart-Onboarding | P1 | rekonstruiert | B05 | 2026-08-25 |
+| B07 | Einstellungsfenster | P1 | rekonstruiert | B03, B05 | 2026-08-25 |
+| B08 | Automatische Updates | P0 | rekonstruiert | — | 2026-08-25 |
+| B09 | Build-, Signatur- und DMG-Kette | P0 | rekonstruiert | B08 | 2026-08-25 |
+| B10 | Landingpage | P2 | rekonstruiert | B09 | 2026-08-25 |
 
 ## Was jedes Feature umfasst
 
@@ -35,63 +35,86 @@ vor dem Code entstand und die Vorgabe war.
 | B09 | `swift build -c release` → Bundle-Aufbau → Einbetten und Signieren der Sparkle.framework von innen nach außen → Signatur mit Hardened Runtime → DMG in zwei Varianten → gebrandeter DMG-Hintergrund | `scripts/build.sh`, `scripts/create-dmg*.sh`, `scripts/GenerateDMGBackground.swift`, `Resources/MikaGrid.entitlements` |
 | B10 | Next.js 15 auf Vercel, spiegelt Version, Download-Link, DMG-Größe und Aktionsliste aus dem Bestand; öffentliche Aussagen zu Lizenz, Datenschutz und Signaturlage | `web/` |
 
-## Reihenfolge der Rückerfassung
+## Stand der Erfassung
 
-**Nach Risiko, nicht nach Nummer:**
+Phase 1 (Kartierung) und Phase 2 (Rückerfassung) sind **abgeschlossen**. Alle zehn
+Features tragen `spec.md` und `design.md`, geschrieben aus dem Bestand von v1.1.1.
+
+| | Anzahl |
+|---|---|
+| Akzeptanzkriterien | 148 |
+| davon ⚠ markiert — „das tut der Code, soll er das?" | 26 |
+| Fehlbestand-Einträge (Lücken, keine Kriterien) | 73 |
+| Offene Fragen an den Betreiber | 30 |
+| Dokumente | 20 · 3.076 Zeilen |
+
+Die ⚠-Kriterien sind **absichtlich** als Kriterien formuliert und nicht weggelassen: Die
+QA muss das tatsächliche Verhalten reproduzieren können. Wird eines davon als Fehler
+eingestuft, wandert es in den *Fehlbestand* des betreffenden Features.
+
+## Reihenfolge der QA
+
+Unverändert nach Risiko, jetzt als Eingangsreihenfolge für `sdd-qa`:
 
 > **B08 → B09 → B05 → B01 → B02 → B03 → B10 → B04 → B06 → B07**
 
-Die Rückerfassung ist die Eintrittskarte für `sdd-qa`, und die QA ist an einem
-Bestandsprojekt ein Sicherheitsaudit. Wer mit der Darstellung anfängt, auditiert zuletzt,
-was zuerst brennen kann.
-
 | Rang | Feature | Warum hier |
 |---|---|---|
-| 1 | **B08** Automatische Updates | Lädt ausführbaren Code aus dem Netz und installiert ihn — auf dem geprüften System laut `SUAutomaticallyUpdate = 1` sogar unbeaufsichtigt. Die EdDSA-Signaturprüfung ist die einzige Schranke davor. Fällt sie, ist jede weitere Absicherung der App gegenstandslos |
-| 2 | **B09** Build- und Signaturkette | Die Kette, der B08 vertraut. Ad-hoc signiert, nicht notarisiert, `disable-library-validation` aktiv. Hier entsteht das Artefakt, dessen Echtheit B08 prüft |
-| 3 | **B05** Accessibility-Berechtigung | Der Torwächter für jeden Zugriff auf fremde Prozesse. Ohne ihn tut die App nichts; mit ihm darf sie sehr viel |
-| 4 | **B01** Fenster snappen | Schreibt in fremde Prozesse und liest deren Fenstertitel. Die risikoreichste Stelle der eigentlichen Anwendungslogik |
-| 5 | **B02** Wiederherstellen | Hält Fenstertitel im Arbeitsspeicher — der einzige Ort mit möglichem Personenbezug (siehe `docs/datenmodell.md`) |
-| 6 | **B03** Globale Tastenkürzel | Installiert während der Aufnahme einen Monitor für Tastaturereignisse und registriert systemweite Kürzel |
-| 7 | **B10** Landingpage | Macht öffentliche Zusagen zu Lizenz, Datenschutz und Signaturlage. Eine Abweichung vom Bestand ist bereits belegt: `LICENSE` fehlt |
-| 8 | **B04** Popover | Darstellung. Ein bekannter Fund: Die Vorschau bildet die tatsächliche Zielgeometrie nicht korrekt ab |
-| 9 | **B06** Onboarding | Darstellung und Ablauf, kein Fremdzugriff |
-| 10 | **B07** Einstellungsfenster | Darstellung und lokale Einstellungen. Enthält den Fund „Über-Fenster unerreichbar" |
-
-## Ablauf je Feature
+| 1 | **B08** Automatische Updates | Lädt ausführbaren Code aus dem Netz und installiert ihn — laut `SUAutomaticallyUpdate = 1` unbeaufsichtigt. Die EdDSA-Prüfung ist die einzige Schranke |
+| 2 | **B09** Build- und Signaturkette | Die Kette, der B08 vertraut. Ad-hoc signiert, nicht notarisiert |
+| 3 | **B05** Accessibility-Berechtigung | Torwächter für jeden Zugriff auf fremde Prozesse |
+| 4 | **B01** Fenster snappen | Schreibt in fremde Prozesse, liest Fenstertitel |
+| 5 | **B02** Wiederherstellen | Hält Fenstertitel im Speicher — der einzige Ort mit möglichem Personenbezug |
+| 6 | **B03** Globale Tastenkürzel | Systemweite Kürzel, Tastatur-Beobachter während der Aufnahme |
+| 7 | **B10** Landingpage | Öffentliche Zusagen zu Lizenz und Datenschutz; heute nicht ausgeliefert |
+| 8 | **B04** Popover | Darstellung |
+| 9 | **B06** Onboarding | Ablauf und Darstellung |
+| 10 | **B07** Einstellungsfenster | Lokale Einstellungen |
 
 ```
-/sdd-erfassen B08     →  spec.md + design.md rückwärts, Status: rekonstruiert
-/sdd-qa B08           →  Testbericht; entscheidet, wie es weitergeht
+/sdd-qa B08     →  Testbericht; der höchste Schweregrad entscheidet, wie es weitergeht
 ```
 
-Was nach der QA passiert, entscheidet der höchste Schweregrad im Bericht — nicht dieser
-Skill:
-
-| Ergebnis | Nächster Schritt | Status |
+| QA-Ergebnis | Nächster Schritt | Status |
 |---|---|---|
-| kein Befund | kein Deployment, der Code ist live | `deployed`, mit Auditvermerk |
+| kein Befund | kein Deployment — der Code ist live | `deployed`, mit Auditvermerk |
 | kritisch oder hoch | Erfassung pausiert: `sdd-build` → `sdd-qa` → `sdd-deploy` | `review` → … → `deployed` |
-| nur mittel oder niedrig | Eintrag in `features/befunde.md`, weiter mit dem nächsten Feature | bleibt `review` |
+| nur mittel oder niedrig | Eintrag in `features/befunde.md`, weiter mit dem nächsten | bleibt `review` |
 
-## Bereits bekannte Lücken
+`features/befunde.md` wird von `sdd-qa` angelegt und ausschließlich von dort
+fortgeschrieben — nie von Hand.
 
-Diese Punkte sind in Phase 1 beim Lesen aufgefallen und stehen ausführlich in den
-`Fehlbestand`-Abschnitten von `docs/datenmodell.md`, `docs/design-system.md` und
-`docs/app-shell.md` sowie unter *Offene Punkte* im PRD. Sie sind **keine QA-Befunde** —
-`features/befunde.md` wird erst von `sdd-qa` angelegt und ausschließlich von dort
-fortgeschrieben.
+## Entscheidungen, die vor der QA anstehen
 
-| Betrifft | Lücke |
+Die 30 offenen Fragen stehen je Feature unter *Offene Fragen*. Sieben davon ändern, was
+die QA überhaupt prüfen soll, und gehören deshalb vorgezogen:
+
+| # | Frage | Wirkung |
+|---|---|---|
+| B10/OF-01 | Soll die Landingpage überhaupt live gehen? | Solange sie es nicht ist, sind das fehlende Impressum und der tote Lizenzlink folgenlos. Sobald sie es ist, sind sie es nicht mehr — **diese Antwort bestimmt die Dringlichkeit von drei weiteren Befunden** |
+| — | `LICENSE` ergänzen? | Keine offene Frage, sondern eine Lücke: README, Landingpage und die strukturierten Daten sagen MIT zu, die Datei fehlt. Zwei Minuten Arbeit |
+| B09/OF-01 | Auslieferung notarisieren? | Setzt eine Developer-Mitgliedschaft voraus (99 USD/Jahr). Hängt am Zweck „Visitenkarte für Auftragsarbeit" |
+| B08/OF-01 | Darf sich die App unbeaufsichtigt aktualisieren? | Sie tut es heute, ohne dass die Oberfläche das anbietet oder zurücknehmen kann |
+| B08/OF-02 | Welcher Zweig trägt den Update-Feed? | `main` ist `master` seit dem 2026-08-25 voraus. Beim nächsten Release entscheidet das, ob Updates ankommen |
+| B02/OF-01 | Historien-Schlüssel auf die Fensternummer umstellen? | Behebt drei Befunde auf einmal und nimmt den Fenstertitel aus dem Arbeitsspeicher |
+| B07/OF-03 | Über-Fenster wieder erreichbar machen — oder streichen? | Beides ist vertretbar; der heutige Zwischenzustand aus 85 Zeilen totem Code ist es nicht |
+
+## Projektweite Lücken
+
+Diese betreffen **kein einzelnes Feature** und stehen deshalb auch in den Dokumenten
+unter `docs/`:
+
+| Lücke | Betrifft |
 |---|---|
-| projektweit | `LICENSE` fehlt, obwohl README und Website MIT zusichern |
-| projektweit | Kein `Tests/`-Verzeichnis — `swift test` hat nichts auszuführen |
-| projektweit | `docs/datenschutz.md` fehlt |
-| B03 / Daten | Keine Schemaversion; eine neu hinzugefügte Aktion bekommt bei Bestandsnutzern kein Kürzel |
-| B02 | Historien-Schlüssel bricht bei Titelwechsel; `clearAll()` wird nie aufgerufen; kein Limit |
-| B07 | Über-Fenster ist nicht erreichbar (`.showAbout` wird nirgends gepostet) |
-| B07 | `SUAutomaticallyUpdate` ist aktiv, aber in der Oberfläche nicht abschaltbar |
-| B04 | Vorschau der 2/3-Zone zeigt ~80 % × 69 % statt 67 % × 67 % |
-| B08 | `SUFeedURL` zeigt auf `master`, entwickelt wird auf `main` (derzeit deckungsgleich) |
-| B09 | Ad-hoc signiert, nicht notarisiert, `disable-library-validation` aktiv |
-| projektweit | Keine Barrierefreiheit; kein heller Modus in Onboarding und Über-Fenster |
+| `LICENSE` fehlt, obwohl an vier Stellen MIT zugesagt wird | Repository, README, B10 |
+| Kein `Tests/`-Verzeichnis — `swift test` hat nichts auszuführen | alle zehn Features nennen es im Fehlbestand |
+| `docs/datenschutz.md` fehlt | PRD, B10 |
+| Keine Barrierefreiheit: kein `accessibilityLabel`, kein Dynamic Type | B04, B06, B07 |
+| Kein heller Modus in Onboarding und Über-Fenster | B06, B07 |
+| Kein Programmmenü und damit kein Tastaturweg in die App | B04, B07 |
+| Fehlschläge werden durchgehend still verschluckt (`print` oder gar nichts) | B01, B03, B05, B07, B08, B09 |
+
+Der letzte Eintrag ist das deutlichste Muster der ganzen Erfassung: An sechs von zehn
+Features endet mindestens ein Fehlerpfad ohne jede Rückmeldung an den Nutzer. Einzeln ist
+das jeweils vertretbar; zusammen ergibt es eine App, die bei jeder Störung gleich
+aussieht — sie tut einfach nichts.
