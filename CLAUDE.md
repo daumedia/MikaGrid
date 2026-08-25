@@ -15,11 +15,23 @@ The app lives exclusively in the menu bar (no Dock icon). Part of the Mika+ ecos
 | `docs/datenmodell.md` | `UserDefaults`-Schlüssel, flüchtige Speicher, Löschregeln |
 | `docs/design-system.md` | Farben, Typografie, Abstände, Komponenten-Grundformen |
 | `docs/app-shell.md` | Einstiegspunkte, die drei Fenster, Lebenszyklus |
-| `features/index.md` | Feature-Inventar B01–B10 mit Status und Rückerfassungs-Reihenfolge |
+| `features/index.md` | Feature-Inventar B01–B10, Status, QA-Reihenfolge, projektweite Lücken |
+| `features/B<NN>-<slug>/spec.md` | Akzeptanzkriterien und *Fehlbestand* je Feature |
+| `features/B<NN>-<slug>/design.md` | Aufbau, Datenhaltung, Zugriff, AK-Abdeckung je Feature |
 
-Erfasst am 2026-08-25 über `sdd-erfassen` Phase 1 — die Dokumente sind **rückwirkend aus
-dem Bestand** geschrieben und beschreiben, was der Code tut, nicht was er tun sollte.
-Jedes trägt einen Abschnitt *Fehlbestand* mit den Lücken, die dabei aufgefallen sind.
+Erfasst am 2026-08-25 über `sdd-erfassen`, Phase 1 und 2 vollständig. Alle Dokumente sind
+**rückwirkend aus dem Bestand** (v1.1.1) geschrieben und beschreiben, was der Code tut,
+nicht was er tun sollte. Jedes trägt einen Abschnitt *Fehlbestand* mit den Lücken, die
+dabei aufgefallen sind.
+
+Alle zehn Features stehen auf `rekonstruiert` — 148 Akzeptanzkriterien, davon 26 mit ⚠
+markiert („das tut der Code heute, soll er das?"), 73 Fehlbestand-Einträge, 30 offene
+Fragen. Nächster Schritt ist `/sdd-qa B08`; die Reihenfolge steht in `features/index.md`.
+
+**Beim Arbeiten am Code:** Die Spec des betroffenen Features ist eine *Rekonstruktion*
+und kann selbst falsch sein — anders als bei einer Spec, die vor dem Code entstand. Wer
+ein Bestandsfeature erweitert, legt ein neues Feature mit eigener Nummer an, das unter
+*Abhängigkeiten* darauf verweist.
 
 ## App Identity
 - **Name**: Mika+Grid
