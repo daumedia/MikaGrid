@@ -2,10 +2,21 @@
 
 Stand: 2026-08-25 · Stack-Profil: `swiftui-macos` · Artefaktpfad: `docs/` · App-Version: 1.2.0
 
-Alle Einträge tragen das Präfix **`B`**: gebaut, bevor die Kette da war, rückwirkend
+Einträge mit dem Präfix **`B`** sind Bestand: gebaut, bevor die Kette da war, rückwirkend
 erfasst. An der ID ist damit ohne Nachschlagen erkennbar, dass die zugehörige `spec.md`
 eine **Rekonstruktion** ist und selbst falsch sein kann — anders als bei einer Spec, die
-vor dem Code entstand und die Vorgabe war.
+vor dem Code entstand und die Vorgabe war. Einträge ohne Präfix sind gegen eine
+Anforderung entstanden.
+
+### Neu gebaut (Vorwärts-Namensraum)
+
+Features, die gegen eine Anforderung entstehen — mit Spec **vor** dem Code.
+
+| ID | Feature | Prio | Status | Abhängig von | Zuletzt |
+|---|---|---|---|---|---|
+| 01 | App-Store-Vertrieb | P1 | tasked | B01, B03, B04, B06, B09 | 2026-08-25 |
+
+### Bestand
 
 | ID | Feature | Prio | Status | Abhängig von | Zuletzt |
 |---|---|---|---|---|---|
@@ -24,6 +35,7 @@ vor dem Code entstand und die Vorgabe war.
 
 | ID | Umfang | Quellen |
 |---|---|---|
+| 01 | Xcode-Projekt mit zwei Zielen; Store-Ziel sandboxed und über Shortcuts statt Accessibility-API; Onboarding-Schritt für den Companion-Shortcut; Einreichung und Store-Auftritt | *noch nicht gebaut* |
 | B01 | Elf Snap-Aktionen, Zielgeometrie je Bildschirm, Bildschirmwahl über den Fenstermittelpunkt, Schreibfolge Größe→Position→Größe mit Rückmessung, Umgang mit `AXEnhancedUserInterface` und AX-Zeitgrenzen | `WindowManager.swift`, `SnapAction.swift` |
 | B02 | Sichern des Rahmens vor dem **ersten** Snap, Wiederherstellen mit ⌃⌥⌫, Schlüssel ist die Fensterreferenz (`CFEqual`), Historie auf 100 Einträge begrenzt | `SnapHistory.swift`, `WindowManager.snapFrontmostWindow` (restore-Zweig) |
 | B03 | Carbon-Registrierung der elf Kürzel, einmalige Handler-Installation, freie Belegung über Recorder, Konflikt- und Sperrlistenprüfung, sichtbare Fehlschläge, Speicherung mit Schemaversion und Auffüllen fehlender Belegungen | `HotkeyManager.swift`, `Preferences/ShortcutsTabView.swift` |
