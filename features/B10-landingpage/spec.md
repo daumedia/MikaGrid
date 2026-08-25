@@ -1,8 +1,12 @@
 # B10 · Landingpage — Spezifikation
 
-Status: `rekonstruiert` · Stand: 2026-08-25 · Erfasst aus: v1.1.1
+Status: `rekonstruiert` · Stand: 2026-08-25 · Erfasst aus: v1.1.1 · Repariert in: v1.2.0
 
-> **Rückerfassung.** ⚠ markiert Verhalten, das zur Klärung vorliegt.
+> **Rückerfassung, danach repariert.** Erfasst aus v1.1.1, überarbeitet in **v1.2.0**
+> (2026-08-25). Die Kriterien beschreiben den Stand **nach** der Reparatur; was vorher
+> anders war, steht in Klammern dabei. ⚠ markiert die Punkte, die **nicht** aus dem
+> Repository heraus lösbar sind. *Behobener Fehlbestand* führt jede geschlossene Lücke mit
+> ihrer Fundstelle — eine Rekonstruktion, die verschweigt, was falsch war, ist wertlos.
 
 ## Zweck
 
@@ -68,13 +72,15 @@ Auftragsarbeit aufmerksam macht — der Zweck, den das PRD unter Monetarisierung
 - **AK-11** · Angenommen, die Seite behauptet „0 Trackers or analytics", wenn das geprüft
   wird, dann trifft die Aussage zu.
 - **AK-12** ⚠ · Angenommen, ein Interessent ruft die im Quelltext hinterlegte Adresse
-  `https://mikagrid.vercel.app` auf, dann erhält er **eine Fehlerseite**.
-  *(So ist der Zustand am 2026-08-25: HTTP 404 mit `x-vercel-error: DEPLOYMENT_NOT_FOUND`.
-  Die Adresse zeigt auf Vercel, aber es existiert kein Deployment. Siehe OF-01.)*
-- **AK-13** ⚠ · Angenommen, ein Besucher klickt in der Fußzeile auf „MIT Licence", dann
-  landet er auf einer **Fehlerseite von GitHub**.
-  *(Der Link zeigt auf `…/blob/master/LICENSE`; die Datei existiert weder auf `master`
-  noch auf `main` — beide liefern HTTP 404. Siehe OF-02.)*
+  `https://mikagrid.vercel.app` auf, dann erhält er eine Fehlerseite.
+  *(Unverändert am 2026-08-25: HTTP 404 mit `x-vercel-error: DEPLOYMENT_NOT_FOUND`. Die
+  Seite ist vollständig gebaut und geprüft, aber nicht veröffentlicht — dazu braucht es
+  Zugang zum Vercel-Konto. Der Marker bleibt deshalb stehen. Siehe FB-02.)*
+- **AK-13** · Angenommen, ein Besucher klickt in der Fußzeile auf „MIT Licence", dann
+  erreicht er die Lizenzdatei im Repository.
+  *(Bis 1.1.1 führte der Link auf `…/blob/master/LICENSE` ins Leere: Die Datei existierte
+  nicht. Seit 1.2.0 gibt es sie, und der Link zeigt auf `/blob/HEAD/`, folgt also dem
+  Standardzweig statt einem fest verdrahteten.)*
 
 ### Datenschutz und Missbrauchsschutz
 
@@ -83,11 +89,11 @@ Geprüft gegen `~/.claude/sdd/sicherheit.md`.
 - **AK-14** · Angenommen, die Seite ist erreichbar, wenn ein Besucher sie aufruft, dann
   verarbeitet der Betreiber mittelbar dessen IP-Adresse — über die Zugriffsprotokolle
   von Vercel. Eigene Verarbeitung findet nicht statt.
-- **AK-15** ⚠ · Angenommen, ein Besucher sucht die Datenschutzerklärung oder das
-  Impressum, dann findet er **keines von beidem** — weder verlinkt noch unter den
-  üblichen Pfaden.
-  *(Nachgewiesen: keine Fundstelle im Quelltext; `/privacy`, `/legal`, `/impressum` und
-  `/imprint` sind keine Routen. Siehe FB-01 und OF-03.)*
+- **AK-15** · Angenommen, ein Besucher sucht die Datenschutzerklärung oder das Impressum,
+  dann findet er beides in der Fußzeile verlinkt, unter `/privacy` und `/legal`.
+  *(Bis 1.1.1 gab es weder das eine noch das andere — bei einer Seite, die ausdrücklich als
+  Werbeträger für Auftragsarbeit dient, der einzige Befund der ganzen Erfassung mit
+  rechtlicher Tragweite.)*
 - **Besondere Kategorien, Uploads, Rollen, Rate Limits:** treffen nicht zu — die Seite
   nimmt keine Eingaben entgegen.
 - **Geheimnisse:** keine. Die Seite ist vollständig statisch; es gibt keine
@@ -104,51 +110,46 @@ Geprüft gegen `~/.claude/sdd/sicherheit.md`.
 - **EC-04** · Besucher mit deaktiviertem JavaScript → die Seite ist statisch
   vorgerendert und bleibt vollständig lesbar; nur die animierte Vorführung steht still.
 
-## Fehlbestand
+## Behobener Fehlbestand
 
-- **FB-01 · Weder Impressum noch Datenschutzerklärung.** Die Seite besteht aus genau
-  einer Route; es gibt keine rechtlichen Angaben. **Folge:** Der Anbieter sitzt in
-  Luxemburg und betreibt die Seite ausdrücklich als Werbeträger für Auftragsarbeit — sie
-  ist damit kein rein privates Angebot. Für einen gewerblich veranlassten Online-Auftritt
-  in der EU sind Anbieterkennzeichnung und eine Information nach Art. 13 DSGVO
-  vorgesehen, letztere schon wegen der Zugriffsprotokolle des Hosters. Das ist der
-  einzige Befund der gesamten Erfassung, der eine **rechtliche Pflicht** berührt und
-  nicht nur eine technische Schwäche. Er wiegt schwerer, sobald die Seite live geht.
-- **FB-02 · Die Seite ist nicht erreichbar.** `mikagrid.vercel.app` antwortet mit
-  `DEPLOYMENT_NOT_FOUND`. **Folge:** Sämtliche Verweise auf die eigene Adresse laufen ins
-  Leere — die kanonische Adresse in den Metadaten, `sitemap.xml`, `robots.txt` und der
-  Eintrag `url` in den strukturierten Daten. Ein Feature, das vollständig gebaut, aber
-  nicht ausgeliefert ist, ist im Bestand schwer zu bemerken: Im Repository sieht alles
-  fertig aus.
-- **FB-03 · Der Lizenzlink der Fußzeile ist tot.** Er zeigt auf
-  `…/blob/master/LICENSE`; die Datei existiert nicht (HTTP 404 auf beiden Zweigen).
-  **Folge:** Die Seite verspricht an drei Stellen MIT — Aufmacher, häufige Fragen und
-  maschinenlesbar in den strukturierten Daten (`license: opensource.org/licenses/MIT`) —
-  und der einzige Beleg dafür führt auf eine Fehlerseite. Zusammen mit dem fehlenden
-  `LICENSE` im Repository ist das keine Nachlässigkeit in der Darstellung, sondern eine
-  unbelegte Zusage.
-- **FB-04 · Der Zweig `master` steckt fest verdrahtet in der Fußzeile.** Dieselbe Stelle.
-  **Folge:** Derselbe Zweig-Zwiespalt wie bei B08/FB-01, hier ein zweites Mal.
-- **FB-05 · Kein Abgleich mit dem Bestand.** `web/lib/app.ts` und `web/lib/snapActions.ts`
-  spiegeln `Info.plist`, `appcast.xml` und `SnapAction.swift` von Hand. **Folge:** EC-01
-  und EC-02. Alle drei Werte sind maschinell vergleichbar — geprüft wird nichts.
-- **FB-06 · Keine Angabe zur Signaturlage im Aufmacher.** Die häufigen Fragen erklären
-  offen, dass die Builds ad-hoc signiert und nicht notarisiert sind — aber erst weit
-  unten. Wer nur den Aufmacher liest und lädt, trifft die Gatekeeper-Warnung unvorbereitet.
-- **FB-07 · Kein Test, kein Prüflauf.** Kein `npm test`, keine Fließbandsteuerung. Der
-  Build besteht (AK-01), aber niemand führt ihn automatisch vor einer Veröffentlichung aus.
+- **FB-01 ✅ Weder Impressum noch Datenschutzerklärung.**
+  **Behoben:** `/legal` (Anbieterkennzeichnung nach dem luxemburgischen Gesetz vom
+  14. August 2000 über den elektronischen Geschäftsverkehr) und `/privacy` (Information
+  nach Art. 13 DSGVO, einschließlich der Zugriffsprotokolle des Hosters). Beide sind in
+  der Fußzeile verlinkt und stehen in der Sitemap. Dazu `docs/datenschutz.md` als interne
+  Fassung.
+- **FB-02 ⚠ Die Seite ist nicht erreichbar.**
+  **Nicht behoben — nicht behebbar ohne Zugang:** `mikagrid.vercel.app` antwortet weiter
+  mit `DEPLOYMENT_NOT_FOUND`. Der Bau ist geprüft (`npm run build`, acht statische Routen),
+  aber die Veröffentlichung verlangt Zugriff auf das Vercel-Konto des Betreibers.
+  **Der einzige verbliebene Punkt dieses Features.**
+- **FB-03 ✅ Der Lizenzlink der Fußzeile war tot.**
+  **Behoben:** `LICENSE` existiert jetzt im Repository, und `APP.licenseUrl` zeigt auf
+  `/blob/HEAD/LICENSE` — das folgt immer dem Standardzweig.
+- **FB-04 ✅ Der Zweig `master` steckte fest verdrahtet in der Fußzeile.**
+  **Behoben** mit FB-03.
+- **FB-05 ✅ Kein Abgleich mit dem Bestand.**
+  **Behoben:** `scripts/check-web-sync.mjs` vergleicht Version, Mindestsystem,
+  Download-Adresse, DMG-Größe sowie Anzahl und Beschriftungen der Snap-Aktionen gegen
+  `Info.plist`, `appcast.xml` und `SnapAction.swift`. Läuft in der CI und über
+  `npm run check`.
+- **FB-06 ✅ Keine Angabe zur Signaturlage im Aufmacher.**
+  **Behoben:** Unter der Download-Schaltfläche steht jetzt ein Hinweis mit Verweis auf die
+  ausführliche Antwort in den häufigen Fragen.
+- **FB-07 ✅ Kein Test, kein Prüflauf.**
+  **Behoben:** `.github/workflows/ci.yml` baut die Seite bei jedem Push und führt die
+  Abgleichprüfung aus.
 
-## Offene Fragen
+## Entschiedene Fragen
 
-- **OF-01** · Soll die Seite überhaupt live gehen (FB-02)? Solange sie es nicht ist, sind
-  FB-01 und FB-03 folgenlos — sobald sie es ist, sind sie es nicht mehr. Diese Frage
-  entscheidet die Dringlichkeit der übrigen. — *Betreiber, zuerst.*
-- **OF-02** · `LICENSE` ergänzen oder die Lizenzaussagen entfernen (FB-03)? Die Datei
-  hinzuzufügen ist die Arbeit von zwei Minuten und deckt zugleich README, Aufmacher,
-  häufige Fragen und strukturierte Daten. — *Betreiber, empfohlen.*
-- **OF-03** · Impressum und Datenschutzerklärung ergänzen (FB-01)? Bei „Visitenkarte für
-  Auftragsarbeit" als erklärtem Zweck spricht wenig dagegen und einiges dafür. —
-  *Betreiber, vor dem Livegang.*
+- **OF-01 ⚠ Die Seite soll live gehen** — die Entscheidung ist gefallen, die Ausführung
+  steht aus. Alles, was ihr im Weg stand, ist beseitigt: Der Bau ist grün, Impressum und
+  Datenschutzerklärung liegen vor, der Lizenzlink stimmt. Es fehlt der Anstoß im
+  Vercel-Konto (Root Directory `web`). Siehe FB-02.
+- **OF-02 ✅ `LICENSE` ist ergänzt** — MIT, wie an vier Stellen zugesagt.
+- **OF-03 ✅ Impressum und Datenschutzerklärung sind ergänzt.** Bei „Visitenkarte für
+  Auftragsarbeit" als erklärtem Zweck ist die Seite kein rein privates Angebot; die
+  Angaben gehören dazu, sobald sie erreichbar ist.
 
 ## Decision Log
 

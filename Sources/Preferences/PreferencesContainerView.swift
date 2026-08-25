@@ -28,7 +28,8 @@ struct PreferencesContainerView: View {
                     .frame(maxWidth: .infinity, alignment: .topLeading)
             }
         }
-        .frame(width: 580, height: 420)
+        .frame(width: PreferencesWindowController.windowSize.width,
+               height: PreferencesWindowController.windowSize.height)
     }
 
     @ViewBuilder

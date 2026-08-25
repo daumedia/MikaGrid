@@ -2,7 +2,7 @@
 
 Stand: 2026-08-25 · Stufe Datenschutz: A · Artefaktpfad: `docs/`
 
-> **Rekonstruktion aus dem Bestand (Version 1.1.1).** Beschrieben ist, was die App
+> **Rekonstruktion aus dem Bestand, Stand v1.2.0.** Beschrieben ist, was die App
 > tatsächlich speichert — nachgeprüft am Code *und* an der `UserDefaults`-Datei der
 > installierten App (`defaults read lu.daumedia.mikagrid`, gelesen am 2026-08-25).
 
@@ -22,7 +22,7 @@ Sinn — Entitäten, Beziehungen, Fremdschlüssel — hat diese App nicht. Was s
 | Ort | Lebensdauer | Inhalt | Personenbezug |
 |---|---|---|---|
 | `UserDefaults` (Suite `lu.daumedia.mikagrid`) | über Neustarts, überlebt Deinstallation | Einstellungen der App und von Sparkle | nein |
-| `SnapHistory` (Dictionary im RAM) | bis zum Beenden | Fensterrahmen je Fenster, **Schlüssel enthält den Fenstertitel** | möglich, siehe unten |
+| `SnapHistory` (Dictionary im RAM) | bis zum Beenden | Fensterrahmen je Fenster, Schlüssel ist die Fensterreferenz | **nein** (seit 1.2.0) |
 | `HotkeyManager.currentBindings` (RAM) | bis zum Beenden, gespiegelt nach `UserDefaults` | aktive Tastenbelegung | nein |
 | macOS-Systemdienste | außerhalb der App | Accessibility-Zustimmung (TCC), Anmeldeobjekt (`SMAppService`), Position des Menüleistensymbols | nein |
 
@@ -107,43 +107,28 @@ herangezogen.
 | Accessibility-Zustimmung | macOS TCC-Datenbank | Das System. Die App liest nur (`AXIsProcessTrusted()`), sie kann nichts setzen |
 | Start bei der Anmeldung | `SMAppService.mainApp` | Das System — bewusst kein Spiegel in `UserDefaults` (`LaunchAtLoginManager`: „System is source of truth") |
 
-## Fehlbestand
+## Behobener Fehlbestand
 
-Lücken, keine Kriterien. Was hier steht, ist **nicht** als beabsichtigt zu lesen.
+Alle acht Lücken sind in v1.2.0 geschlossen. Einzelheiten und Nachweise stehen in den
+Specs der jeweiligen Features.
 
-- **Keine Schemaversion, kein Aufstiegspfad.** Die `UserDefaults` tragen keine
-  Versionsnummer. Das Stack-Profil `swiftui-macos` benennt genau das als Pflicht:
-  „Steht keiner in `design.md`, verliert der Nutzer beim Update seine Konfiguration."
-- **Ein fehlgeschlagenes Decoding verwirft alle Anpassungen stillschweigend.**
-  `try? JSONDecoder().decode(...)` fällt bei jedem Formatfehler auf den `else`-Zweig und
-  damit auf die Standardbelegung zurück. Der Nutzer erhält keinen Hinweis; seine elf
-  angepassten Kürzel sind ohne Meldung weg. Erweitert je ein künftiges Release die
-  Struktur `HotkeyBinding` um ein Feld, tritt genau das bei allen Bestandsnutzern ein.
-- **Eine neu hinzugefügte Aktion bekommt bei Bestandsnutzern kein Kürzel.** Beim Laden
-  wird nur übernommen, was in der Datei steht; für Aktionen, die dort fehlen, wird
-  *kein* Standard nachgezogen. `registerHotkeys()` überspringt sie per
-  `guard let binding = currentBindings[action] else { continue }`. Ergebnis: Die neue
-  Aktion ist per Tastatur tot, bis der Nutzer von sich aus „Restore Defaults" drückt.
-  Dasselbe passiert, wenn ein `SnapAction`-Fall je umbenannt wird.
-- **`SnapHistory` wächst unbegrenzt.** Kein Limit, keine Verdrängung, kein Aufräumen bei
-  Prozessende. Jedes je gesnappte Fenster hinterlässt dauerhaft einen Eintrag samt Titel
-  im Speicher; `clearAll()` wird nirgends aufgerufen.
-- **Der Historien-Schlüssel bricht, sobald sich der Fenstertitel ändert.** Browser-Tab
-  gewechselt, Datei gespeichert, Dokument umbenannt — der Schlüssel `"<PID>_<Titel>"`
-  passt nicht mehr, und `restore` findet nichts und tut kommentarlos gar nichts. Für
-  Fenster ohne Titel kollidieren umgekehrt **alle** Fenster derselben App auf
-  `"<PID>_untitled"` und überschreiben sich gegenseitig.
-- **`SUAutomaticallyUpdate` wird gesetzt, aber nie angezeigt.** Auf dem geprüften System
-  steht der Wert auf `1`: Updates installieren sich selbsttätig. Die Oberfläche der App
-  kennt nur „Automatic updates" (`SUEnableAutomaticChecks`) und erweckt damit den
-  Eindruck, es gäbe nur eine Stufe. Wer die automatische Installation abschalten will,
-  findet in der App keinen Weg dazu.
-- **Deinstallation hinterlässt alles.** Es gibt keine Aufräumroutine: Die `plist` bleibt
-  liegen, der Accessibility-Eintrag bleibt in den Systemeinstellungen stehen, ein
-  gesetztes Anmeldeobjekt bleibt registriert. Bei Stufe A ist das kein Datenschutzproblem,
-  aber es ist unaufgeräumt und gehört benannt.
-- **`resetAllPreferences()` setzt `hasCompletedOnboarding` auf `true`, nicht auf
-  `false`.** „Alle Einstellungen zurücksetzen" führt also **nicht** in den Auslieferungs-
-  zustand zurück — das Onboarding erscheint danach nicht erneut. Ob das gewollt ist
-  (der Nutzer kennt die App ja bereits) oder ein Versehen, entscheidet die Rückerfassung
-  von B07; hier steht nur, was der Code tut.
+| Lücke | Stand |
+|---|---|
+| Keine Schemaversion, kein Aufstiegspfad | ✅ `hotkeyBindingsSchemaVersion`; ein neuerer Stand wird verworfen statt halb gelesen (B03/FB-03) |
+| Ein fehlgeschlagenes Decoding verwarf alle Anpassungen still | ✅ Rückfall auf die vollständige Standardbelegung, geprüft in `corruptDataYieldsDefaults` |
+| Eine neu hinzugefügte Aktion bekam kein Kürzel | ✅ fehlende Belegungen werden aufgefüllt (B03/FB-02) |
+| `SnapHistory` wuchs unbegrenzt | ✅ 100 Einträge mit Verdrängung (B02/FB-03) |
+| Der Historien-Schlüssel brach bei Titeländerung | ✅ Schlüssel ist die Fensterreferenz (B02/FB-01) |
+| `SUAutomaticallyUpdate` wurde gesetzt, aber nie angezeigt | ✅ zweiter Schalter in den Einstellungen (B08/FB-05) |
+| Deinstallation hinterließ alles | ✅ dokumentiert in `docs/datenschutz.md` mit den nötigen Befehlen; ein Programm darf fremde Systemeinträge nicht selbst entfernen |
+| `resetAllPreferences()` führte nicht in den Auslieferungszustand | ✅ beide Kennzeichen und acht Sparkle-Schlüssel werden gelöscht (B07/FB-01, FB-02) |
+
+### Was sich am Datenmodell dadurch geändert hat
+
+- **Neu:** `hotkeyBindingsSchemaVersion` (Zahl) neben `hotkeyBindings`.
+- **Geändert:** Der Schlüssel der Positionshistorie ist nicht mehr `"<PID>_<Fenstertitel>"`,
+  sondern das `AXUIElement` des Fensters, verglichen über `CFEqual`. Damit liegt **kein
+  Fenstertitel mehr im Arbeitsspeicher** — die einzige Stelle der App mit möglichem
+  Personenbezug ist entfallen.
+- **Geändert:** Die Historie ist auf 100 Einträge begrenzt und wird bei Entzug der
+  Berechtigung, bei einer Änderung der Bildschirmanordnung und beim Zurücksetzen geleert.

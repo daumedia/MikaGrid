@@ -17,6 +17,7 @@ struct WelcomeScreen: View {
                 .resizable()
                 .frame(width: 120, height: 120)
                 .foregroundStyle(Color.MikaPlus.tealPrimary)
+                .accessibilityHidden(true)
 
             Text("Welcome to Mika+Grid")
                 .font(.system(size: 22, weight: .semibold))
@@ -29,12 +30,7 @@ struct WelcomeScreen: View {
             Spacer()
 
             Button(action: onNext) {
-                Text("Get Started")
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(.white)
-                    .frame(width: 200, height: 40)
-                    .background(Color.MikaPlus.tealPrimary)
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                Text("Get Started").onboardingPrimaryButton()
             }
             .buttonStyle(.plain)
 

@@ -1,10 +1,11 @@
 # B09 · Build-, Signatur- und DMG-Kette — Spezifikation
 
-Status: `rekonstruiert` · Stand: 2026-08-25 · Erfasst aus: v1.1.1
+Status: `rekonstruiert` · Stand: 2026-08-25 · Erfasst aus: v1.1.1 · Repariert in: v1.2.0 · Repariert in: v1.2.0
 
-> **Rückerfassung.** Beschrieben ist, was die Skripte tun, nachgeprüft am gebauten
-> Bundle unter `build/` und am ausgelieferten DMG aus dem GitHub-Release.
-> ⚠ markiert Verhalten, das zur Klärung vorliegt.
+> **Rückerfassung, danach repariert.** Erfasst aus v1.1.1, überarbeitet in **v1.2.0**
+> (2026-08-25). Die Kriterien beschreiben den Stand **nach** der Reparatur; was vorher
+> anders war, steht in Klammern dabei. ⚠ markiert die Punkte, die **nicht** aus dem
+> Repository heraus lösbar sind.
 
 ## Zweck
 
@@ -63,24 +64,19 @@ ausführbare Datei ohne Bundle-Kennung — und damit weder Hotkeys noch Sparkle.
   wird er über `scripts/GenerateDMGBackground.swift` erzeugt.
 - **AK-10** · Angenommen, die Version steht in `Resources/Info.plist`, wenn ein DMG
   entsteht, dann trägt die Datei genau diese Versionsnummer im Namen.
-- **AK-11** ⚠ · Angenommen, ein Nutzer lädt das ausgelieferte DMG und öffnet die App,
-  wenn Gatekeeper prüft, dann **wird sie abgewiesen** und muss über den Rechtsklick-Weg
-  freigegeben werden.
-  *(So verhält sich der Auslieferungsstand heute: `spctl -a -vv build/Mika+Grid.app` →
-  `rejected`; `xcrun stapler validate` am ausgelieferten DMG → „does not have a ticket
-  stapled to it". Die Signatur ist ad-hoc, `TeamIdentifier=not set`. Die FAQ der
-  Landingpage beschreibt diesen Umweg ausdrücklich — es ist also bekannt und in Kauf
-  genommen. Als Kriterium aufgenommen, damit die QA es reproduziert; siehe OF-01.)*
-- **AK-12** ⚠ · Angenommen, die Kette hat Sparkles Bestandteile einzeln von innen nach
-  außen signiert, wenn anschließend das Gesamtbundle signiert wird, dann werden **alle
-  diese Signaturen erneut überschrieben** und den Bestandteilen die Entitlements der App
-  aufgeprägt.
-  *(So verhält sich der Code heute: `scripts/build.sh:76` ruft
-  `codesign --force --deep --sign - --entitlements …` auf das ganze Bundle. Nachgewiesen
-  am Ergebnis: `Downloader.xpc`, `Installer.xpc` und `Updater.app` tragen
-  `app-sandbox=false` und `disable-library-validation=true`, obwohl Sparkle sie mit
-  **leeren** Entitlements ausliefert. Damit sind die Zeilen 64–72 des Skripts wirkungslos.
-  Siehe FB-02 und OF-02.)*
+- **AK-11** ⚠ · Angenommen, ein Nutzer lädt das ausgelieferte DMG und öffnet die App, wenn
+  Gatekeeper prüft, dann fragt macOS beim ersten Start nach einer Bestätigung.
+  *(Signiert wird seit 1.2.0 mit einer Developer ID; `spctl` meldet jetzt
+  `source=Unnotarized Developer ID` statt einer rundweg abgelehnten Ad-hoc-Signatur. Die
+  Notarisierung steht noch aus — der Marker bleibt deshalb stehen. Siehe FB-01.)*
+- **AK-12** · Angenommen, die Kette hat Sparkles Bestandteile einzeln von innen nach außen
+  signiert, wenn anschließend das Gesamtbundle signiert wird, dann bleiben diese Signaturen
+  erhalten und die Bestandteile behalten ihre eigenen (leeren) Entitlements.
+  *(Bis 1.1.1 rief das Skript `codesign --force --deep --entitlements …` auf das ganze
+  Bundle und machte die vorherigen Schritte damit wirkungslos: `Downloader.xpc`,
+  `Installer.xpc` und `Updater.app` trugen anschließend `disable-library-validation`,
+  obwohl Sparkle sie ohne jede Entitlement ausliefert. Nachgeprüft am gebauten Bundle:
+  jetzt leer.)*
 
 ### Datenschutz und Missbrauchsschutz
 
@@ -114,71 +110,50 @@ Geprüft gegen `~/.claude/sdd/sicherheit.md`.
 - **EC-06** · Zwei Datenträger gleichen Namens eingehängt → `MOUNT_POINT` wird über
   `grep "/Volumes/"` ermittelt und trifft möglicherweise den falschen.
 
-## Fehlbestand
+## Behobener Fehlbestand
 
-Nicht vorhanden, aus dem Code belegt.
+- **FB-01 ⚠ Keine Notarisierung.**
+  **Teilweise behoben:** Signiert wird mit `Developer ID Application: Michael Rodrigues
+  (CWJM4J4HFN)`; `scripts/build.sh` findet die Identität selbst und fällt nur lokal auf
+  ad-hoc zurück. Die **Notarisierung** ist in `scripts/release.sh` vorbereitet und läuft,
+  sobald `NOTARY_PROFILE` gesetzt ist — die Zugangsdaten dafür gehören nicht ins
+  Repository und müssen einmalig eingerichtet werden:
+  `xcrun notarytool store-credentials MikaGrid --apple-id <id> --team-id CWJM4J4HFN
+  --password <app-spezifisch>`. **Der einzige verbliebene Punkt dieses Features.**
+- **FB-02 ✅ `codesign --deep` beim Signieren.**
+  **Behoben:** `--deep` ist aus dem Signierschritt entfernt. Nachgeprüft am gebauten
+  Bundle: Sparkles XPC-Dienste tragen wieder leere Entitlements.
+- **FB-03 ✅ `disable-library-validation` war ein Symptom.**
+  **Behoben und nachgewiesen:** Die Entitlement ist entfernt. Ein Bau ohne sie startet und
+  lädt Sparkle einwandfrei (geprüft: Prozess läuft, `Sparkle.framework` im Adressraum).
+  Für Ad-hoc-Bauten ergänzt `build.sh` sie automatisch, weil dort ohne gemeinsame
+  Team-Kennung tatsächlich kein Laden möglich ist. Der Hardened Runtime ist damit im
+  Auslieferungsfall nicht mehr abgeschwächt.
+- **FB-04 ✅ Das Einbetten von Sparkle scheiterte lautlos.**
+  **Behoben:** Fehlt das Framework, bricht das Skript mit einer Erklärung ab, statt ein
+  Bundle zu erzeugen, das nicht aktualisieren kann und beim Start abstürzt.
+- **FB-05 ✅ Das DMG wurde weder signiert noch geprüft.**
+  **Behoben:** `release.sh` signiert es mit derselben Identität und prüft danach.
+- **FB-06 ✅ Die Sparkle-Signatur entstand von Hand.**
+  **Behoben:** `release.sh` ruft `sign_update` auf, gibt den fertigen Eintrag aus und
+  **verifiziert** die im Feed stehende Signatur gegen das eben gebaute DMG.
+- **FB-07 ✅ Kein Freigabeschritt prüfte die Zusammengehörigkeit.**
+  **Behoben:** `release.sh --check` vergleicht `Info.plist`, `CHANGELOG.md`, `appcast.xml`
+  und `web/lib/app.ts`; `scripts/check-web-sync.mjs` vergleicht zusätzlich die
+  Aktionsliste und die DMG-Größe. Beides läuft in der CI bei jedem Push.
+- **FB-08 ✅ Kein Universal Binary.**
+  **Behoben:** `build.sh --universal` baut für arm64 und x86_64; `release.sh` benutzt das.
 
-- **FB-01 · Keine Notarisierung, keine Developer-ID-Signatur.** `scripts/build.sh:76`
-  signiert mit `--sign -` (ad-hoc). Kein Skript ruft `notarytool` oder `stapler`.
-  **Folge:** Gatekeeper weist die App auf jedem fremden Rechner ab (nachgewiesen:
-  `spctl` → `rejected`, kein gestapeltes Ticket am ausgelieferten DMG). Jeder Nutzer
-  muss den Rechtsklick-Umweg gehen — und genau dieser Umweg ist die Handlung, die man
-  Nutzern sonst abgewöhnen möchte. Für ein Werkzeug, das sich selbst aktualisiert und
-  Zugriff auf alle Fenster verlangt, ist das die schwerste Lücke der ganzen Kette.
-- **FB-02 · `codesign --deep` beim Signieren.** `scripts/build.sh:76`. Apple rät davon
-  ausdrücklich ab; `--deep` ist für die Prüfung gedacht, nicht fürs Signieren.
-  **Folge:** Die sorgfältige Signierung von innen nach außen in den Zeilen 64–72 wird
-  vollständig überschrieben, und alle verschachtelten Bestandteile erhalten die
-  Entitlements der App. Nachgewiesen am Bundle: Sparkles XPC-Dienste tragen
-  `disable-library-validation=true`, obwohl Sparkle sie ohne jede Entitlement
-  ausliefert. Bei einer echten Developer-ID-Signatur führt dieses Muster regelmäßig zu
-  abgelehnter Notarisierung.
-- **FB-03 · `disable-library-validation` ist ein Symptom, keine Notwendigkeit.**
-  `Resources/MikaGrid.entitlements`, eingeführt mit Commit `cb04fbe`
-  („Fix Sparkle framework loading by disabling library validation").
-  **Folge:** Die Entitlement wurde gebraucht, weil App und eingebettetes Framework
-  ad-hoc signiert sind und daher keine gemeinsame Team-Kennung haben. Mit einer echten
-  Developer-ID-Signatur entfiele der Grund. Solange sie gesetzt ist, darf der Prozess
-  beliebige fremdsignierte Bibliotheken laden — eine Abschwächung des Hardened Runtime,
-  die niemand mehr zurücknimmt, wenn ihr Anlass in Vergessenheit gerät.
-- **FB-04 · Das Einbetten von Sparkle scheitert lautlos.** `scripts/build.sh:52–58`
-  sucht das Framework und überspringt den ganzen Block, wenn nichts gefunden wird.
-  **Folge:** Es entsteht ein Bundle ohne Update-Fähigkeit, ohne dass das Skript einen
-  Fehler meldet. Das Skript läuft mit `set -euo pipefail`, umgeht diesen Schutz an
-  dieser Stelle aber durch `|| true` und die `if`-Bedingung.
-- **FB-05 · Das DMG wird weder signiert noch geprüft.** Weder `create-dmg.sh` noch
-  `create-dmg-simple.sh` enthält einen einzigen `codesign`-Aufruf (nachgezählt: 0).
-  **Folge:** Der Datenträger selbst ist nicht als vom Betreiber stammend erkennbar —
-  auch dann nicht, wenn die App darin es später einmal sein sollte.
-- **FB-06 · Die Sparkle-Signatur für den appcast entsteht von Hand.** Kein Skript ruft
-  `sign_update` auf (nachgezählt: kein Treffer in `scripts/` und `build.sh`).
-  **Folge:** Nach jedem Release müssen Signatur und Byte-Länge von Hand nach
-  `appcast.xml` übertragen werden. Wird es vergessen oder verrutscht eine Ziffer, lehnt
-  Sparkle das Update ab — sicher, aber unbemerkt: Der Betreiber erfährt nichts davon
-  (siehe B08/FB-04), und die Nutzer bleiben auf der alten Fassung.
-- **FB-07 · Kein Freigabeschritt prüft die Zusammengehörigkeit.**
-  `CFBundleShortVersionString`, `CFBundleVersion`, der Eintrag in `CHANGELOG.md`, der
-  appcast-Eintrag und `web/lib/app.ts` müssen zueinander passen; nichts prüft das.
-  **Folge:** Die Landingpage kann eine Version bewerben, die es nicht gibt, oder eine
-  Größe nennen, die nicht stimmt. `CLAUDE.md` benennt die Pflicht zur Handpflege
-  ausdrücklich — eine Erinnerung ist kein Schutz.
-- **FB-08 · Kein Universal Binary.** `swift build -c release` baut für die Architektur
-  des Rechners, auf dem es läuft. **Folge:** Intel-Macs bekommen kein lauffähiges
-  Artefakt; die FAQ der Landingpage nennt das offen und verweist auf den Selbstbau.
+## Entschiedene Fragen
 
-## Offene Fragen
-
-- **OF-01** · Soll die Auslieferung notarisiert werden (FB-01)? Das setzt eine
-  Mitgliedschaft im Apple Developer Program (99 USD/Jahr) voraus. Bei „Visitenkarte für
-  Auftragsarbeit" als Zweck ist die Frage nicht rein technisch: Eine App, die beim ersten
-  Start eine Sicherheitswarnung auslöst, wirbt schlecht. — *Betreiber, vor dem nächsten
-  Release.*
-- **OF-02** · Soll `--deep` aus dem Signierschritt entfernt werden (FB-02)? Ohne
-  Notarisierung ist die praktische Auswirkung heute gering, mit Notarisierung wäre es
-  ein Hindernis. Zusammen mit OF-01 zu entscheiden. — *Betreiber.*
-- **OF-03** · Soll das Release automatisiert werden (FB-06, FB-07)? Ein Skript, das
-  baut, signiert, das DMG erzeugt, `sign_update` aufruft und den appcast-Eintrag
-  schreibt, würde drei Fehlerquellen auf einmal schließen. — *Betreiber, ohne Frist.*
+- **OF-01 ⚠ Die Auslieferung soll notarisiert werden** — die Entscheidung ist gefallen, die
+  Ausführung steht aus. Ein Developer-ID-Zertifikat ist vorhanden, die Mitgliedschaft
+  besteht also bereits; es fehlt nur das einmalige Hinterlegen der
+  App-Store-Connect-Zugangsdaten. Siehe FB-01.
+- **OF-02 ✅ `--deep` ist aus dem Signierschritt entfernt.**
+- **OF-03 ✅ Das Release ist automatisiert** — `scripts/release.sh` deckt Bau, Signatur,
+  Notarisierung, DMG, appcast-Signatur, Konsistenzprüfung und den Hinweis auf den
+  Feed-Zweig ab.
 
 ## Decision Log
 

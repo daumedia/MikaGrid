@@ -1,4 +1,4 @@
-# Mika+Grid v1.1.0
+# Mika+Grid v1.2.0
 
 A lightweight macOS menubar window manager that snaps windows to predefined layouts using keyboard shortcuts or a visual grid — similar to Rectangle, built natively with Swift and SwiftUI. Part of the Mika+ ecosystem.
 
@@ -17,6 +17,7 @@ A lightweight macOS menubar window manager that snaps windows to predefined layo
 - **Launch at Login** — via SMAppService (macOS 13+)
 - **Sparkle Auto-Update** — automatic update checks with EdDSA signature verification
 - **Mika+ Branding** — dark theme with teal accent colors
+- **Tested** — 45 unit tests covering snap geometry, shortcut persistence and window history
 
 ## Keyboard Shortcuts
 
@@ -39,17 +40,35 @@ All shortcuts are reconfigurable in Preferences > Shortcuts.
 ## Requirements
 
 - macOS 14.0 (Sonoma) or later
+- Apple Silicon or Intel (releases ship as a universal binary)
 - Accessibility permission (prompted on first launch)
+
+Mika+Grid does **not** request Input Monitoring: global shortcuts go through Carbon's
+`RegisterEventHotKey`, which reports only the eleven combinations the app registers.
 
 ## Build
 
 ```bash
-./build.sh
+./build.sh                 # compile, assemble the bundle, sign with hardened runtime
+./build.sh --clean         # wipe .build/ first
+./build.sh --universal     # arm64 + x86_64
 ```
 
-This compiles the project via SPM, assembles the `.app` bundle, and signs with hardened runtime.
+The script picks up a `Developer ID Application` identity automatically and falls back to
+an ad-hoc signature for local builds. Set `SIGN_IDENTITY` to choose explicitly.
 
-Use `./build.sh --clean` to clean the `.build/` directory before compiling.
+## Test
+
+```bash
+swift test
+```
+
+45 tests covering the parts that work without a window server: snap geometry (halves tile
+without a gap on fractional displays, quarters cover exactly, centre is two thirds),
+shortcut loading and persistence, and the window history including eviction.
+
+`.github/workflows/ci.yml` runs the build, the tests, the signature check, the website
+build and a version consistency check on every push.
 
 ## Install
 
@@ -89,6 +108,16 @@ bash scripts/create-dmg-simple.sh
 
 Both output to `installer/Mika+Grid-v{VERSION}.dmg`.
 
+### Full release
+
+```bash
+bash scripts/release.sh --check    # verify versions line up, change nothing
+bash scripts/release.sh            # build, sign, notarise, package, sign the appcast
+```
+
+`--check` verifies that `Info.plist`, `CHANGELOG.md`, `appcast.xml` and `web/lib/app.ts`
+agree. Notarisation runs when `NOTARY_PROFILE` names a stored `notarytool` credential.
+
 ### DMG Background
 
 Regenerate the branded DMG background images:
@@ -108,8 +137,9 @@ Sources/
 ├── LaunchAtLoginManager.swift        # SMAppService wrapper
 ├── AboutWindow.swift                 # About window with branding
 ├── WindowManager.swift               # AXUIElement window manipulation
-├── SnapAction.swift                  # 11 snap actions with geometry
-├── SnapHistory.swift                 # Previous positions for restore
+├── SnapAction.swift                  # 11 snap actions, geometry and preview rects
+├── SnapResult.swift                  # Why a snap did nothing — no more silent failures
+├── SnapHistory.swift                 # Previous positions, keyed by window reference
 ├── AccessibilityManager.swift        # Permission check/request/polling
 ├── HotkeyManager.swift               # Carbon global hotkeys
 ├── PopoverGridView.swift             # Menubar popover with snap grid
@@ -128,6 +158,12 @@ Sources/
     ├── PermissionScreen.swift        # Accessibility with auto-polling
     └── ShortcutsScreen.swift         # Shortcut overview + Launch at Login
 ```
+
+## Documentation
+
+`docs/` holds the product documentation reconstructed from the codebase — PRD, data model,
+design system, app shell and privacy. `features/` holds a spec and a design document per
+feature, each listing what was found and what was fixed.
 
 ## License
 

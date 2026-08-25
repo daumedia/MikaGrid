@@ -2,7 +2,7 @@
 
 Stand: 2026-08-25 · Artefaktpfad: `docs/`
 
-> **Rekonstruktion aus dem Bestand (Version 1.1.1).**
+> **Rekonstruktion aus dem Bestand, Stand v1.2.0.**
 
 ## Was hier die Shell ist
 
@@ -63,7 +63,7 @@ Alle drei folgen demselben Muster (siehe `design-system.md`, Abschnitt 5): ein
 |---|---|---|---|
 | **Einstellungen** | 580 × 420, `.titled, .closable` | `NavigationSplitView` mit Seitenleiste (140–180 pt) und scrollendem Detailbereich; drei Einträge: General · Shortcuts · About | Fußzeile des Popovers |
 | **Onboarding** | 480 × 560, `.titled, .closable, .fullSizeContentView`, transparente Titelleiste, per Hintergrund verschiebbar | `TabView` mit Punktanzeige; **zwei oder drei** Schritte, je nach Berechtigungslage | Erststart · Einstellungen → About → „Show Onboarding Again" |
-| **Über** | 320 × 400, `.titled, .closable` | einspaltiger Stapel auf dunklem Verlauf | **niemand** — siehe *Fehlbestand* |
+| **Über** | 320 × 400, `.titled, .closable` | einspaltiger Stapel auf dunklem Verlauf | Fußzeile des Popovers · Einstellungen → About |
 
 ### Verzweigung im Onboarding
 
@@ -114,35 +114,24 @@ Carbon-Rückrufbrücke bedient.
 | laufend | `NSWorkspace.didActivateApplicationNotification` merkt sich die zuletzt aktive fremde App als Snap-Ziel |
 | Beenden | ausschließlich über „Quit" im Popover (`NSApp.terminate`) |
 
-## Fehlbestand
+## Behobener Fehlbestand
 
-Lücken, keine Kriterien.
+| Lücke | Stand |
+|---|---|
+| Das Über-Fenster war nicht erreichbar | ✅ Zwei Wege: „About" in der Fußzeile des Popovers und im Einstellungsbereich About. Seit 1.1.0 hatte es gar keinen Auslöser mehr (B07/FB-04) |
+| Kein Tastaturweg in die App | ✅ ⌘, öffnet die Einstellungen, ⌘Q beendet — solange das Popover offen ist. Ein Programmmenü kann eine App mit `LSUIElement` nicht haben; das ist die erreichbare Annäherung (B07/FB-07) |
+| `permissionSkipped` ließ sich nicht zurücknehmen | ✅ Wird aufgehoben, sobald die Berechtigung vorliegt (B05/FB-05) |
+| Das Onboarding galt auch bei Abbruch als abgeschlossen | ✅ Nur „Done" setzt das Kennzeichen (B06/FB-01) |
+| Kein URL-Schema, keine Deep Links | ✅ Bewusst so belassen: Für den heutigen Umfang gibt es keinen Anwendungsfall, und jedes zusätzliche Schema ist eine Angriffsfläche. Jetzt als Entscheidung festgehalten statt als Auslassung |
+| Der Berechtigungsschritt konnte mehrfach weiterschalten | ✅ Ein Merker sorgt für genau einen Wechsel (B06/FB-03) |
 
-- **Das Über-Fenster ist nicht erreichbar.** `AboutWindowController` und `AboutView`
-  (85 Zeilen) existieren, der `AppDelegate` hört auf `.showAbout` — aber **keine Stelle
-  im Quelltext postet diese Notification**. In 1.0.0 lag der Auslöser in der Fußzeile des
-  Popovers; das CHANGELOG zu 1.1.0 vermerkt „Popover footer: 'About' replaced with
-  'Updates' button". Dabei ist der einzige Weg zum Fenster verschwunden, der Code blieb
-  stehen. Ersatz gibt es nur teilweise: Der Einstellungsbereich „About" zeigt dieselbe
-  Version, aber nicht das gestaltete Fenster.
-- **Kein Tastaturweg in die App.** Ohne App-Menü gibt es kein ⌘, für die Einstellungen
-  und kein ⌘Q. Es ist zudem kein Kürzel vorgesehen, das das Popover öffnet — wer die
-  Einstellungen erreichen will, muss zwingend zur Maus greifen. Für eine ansonsten
-  vollständig tastaturbediente App ist das der auffälligste Bruch.
-- **`permissionSkipped` wird nie zurückgenommen.** Wer im Onboarding „Skip for now"
-  wählt, unterdrückt die Berechtigungsabfrage beim Start dauerhaft — auch dann noch, wenn
-  die Zustimmung später erteilt und wieder entzogen wird. Zurücksetzen lässt sich das nur
-  über „Reset All Settings".
-- **Das Onboarding gilt auch bei Abbruch als abgeschlossen.** ESC oder die Fenstertaste
-  im ersten Schritt führen zum selben Ergebnis wie „Done": Die Einrichtung erscheint nie
-  wieder von selbst, obwohl der Nutzer weder die Berechtigung erteilt noch die Kürzel
-  gesehen hat. Der Wiederaufruf ist zwei Ebenen tief vergraben (Einstellungen → About →
-  „Show Onboarding Again").
-- **Kein URL-Schema, keine `.commands`, keine Deep Links.** Weder Automatisierung noch
-  ein Sprung von der Landingpage in eine bestimmte Ansicht sind möglich. Für den heutigen
-  Umfang vertretbar, aber es ist eine Entscheidung, die nirgends festgehalten war.
-- **Der Berechtigungsschritt kann mehrfach weiterschalten.** `onReceive(timer)` legt bei
-  *jedem* Tick eine neue Verzögerungs-`Task` an, ohne die vorherige abzubrechen. Bleibt
-  die Ansicht nach erteilter Zustimmung eine Sekunde länger stehen, laufen mehrere Tasks
-  parallel und rufen `onNext()` mehrfach auf. Sichtbare Folge ist heute gering, weil das
-  Ziel ohnehin der letzte Schritt ist — die Ursache bleibt trotzdem ein Fehler.
+### Was sich an der Shell dadurch geändert hat
+
+- Die Fußzeile des Popovers führt jetzt **vier** Befehle statt drei: Preferences · Updates ·
+  About · Quit.
+- Das Onboarding benutzt eine eigene Schrittumschaltung statt einer Blätteransicht, hat
+  eine Schaltfläche „Back" und wertet die Berechtigungslage laufend aus, statt sie beim
+  Aufbau einmal festzulegen.
+- Das Popover hält seine Berechtigungsanzeige aktuell, solange es sichtbar ist, und zeigt
+  bei einem fehlgeschlagenen Snap dessen Grund.
+- Fenstermaße stehen nur noch an einer Stelle je Fenster (im jeweiligen Controller).

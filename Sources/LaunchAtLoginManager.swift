@@ -4,24 +4,37 @@
 // Manages Launch at Login via SMAppService (macOS 13+).
 // System is source of truth — no UserDefaults needed.
 
+import Observation
 import ServiceManagement
 
+@Observable
 @MainActor
 final class LaunchAtLoginManager {
+
+    /// Grund des letzten Fehlschlags, für die Anzeige in den Einstellungen.
+    ///
+    /// Bis 1.1.1 wurde der Fehler nur auf die Konsole geschrieben: Der Schalter blieb auf „an"
+    /// stehen, obwohl das System das Anmeldeobjekt nicht eingerichtet hatte — die Oberfläche
+    /// behauptete einen Zustand, den es nicht gab.
+    private(set) var lastError: String?
 
     var isEnabled: Bool {
         SMAppService.mainApp.status == .enabled
     }
 
-    func setEnabled(_ enabled: Bool) {
+    @discardableResult
+    func setEnabled(_ enabled: Bool) -> Bool {
         do {
             if enabled {
                 try SMAppService.mainApp.register()
             } else {
                 try SMAppService.mainApp.unregister()
             }
+            lastError = nil
+            return true
         } catch {
-            print("Launch at Login failed: \(error.localizedDescription)")
+            lastError = error.localizedDescription
+            return false
         }
     }
 }

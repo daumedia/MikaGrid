@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
+    <!-- sparkle:version MUSS die CFBundleVersion tragen, nicht die Marketing-Version:
+         Sparkle vergleicht genau dagegen. scripts/release.sh prüft das vor jeder
+         Veröffentlichung. -->
     <channel>
         <title>Mika+Grid</title>
         <link>https://github.com/daumedia/MikaGrid</link>
@@ -39,33 +42,13 @@
                 </ul>
             ]]></description>
             <pubDate>Wed, 19 Mar 2026 14:00:00 +0100</pubDate>
-            <sparkle:version>1.1.0</sparkle:version>
+            <sparkle:version>1</sparkle:version>
             <sparkle:shortVersionString>1.1.0</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
             <enclosure url="https://github.com/daumedia/MikaGrid/releases/download/v1.1.0/Mika%2BGrid-v1.1.0.dmg"
                        sparkle:edSignature="MY61XGFqYk+m3zUi5CnuOSFmZyhLWstRvxfddO50kp3QBi3i+KZPDiXXsemc0+8Ym/bBj7vedjEgwzQINRgCCA=="
                        length="2531425"
                        type="application/octet-stream" />
-        </item>
-        <item>
-            <title>Version 1.0.0</title>
-            <description><![CDATA[
-                <h2>Mika+Grid 1.0.0</h2>
-                <p>Initial release — macOS window snapping menu bar app.</p>
-                <ul>
-                    <li>11 snap actions: halves, quarters, maximize, center, restore</li>
-                    <li>Global keyboard shortcuts (Ctrl+Opt + arrow/letter keys)</li>
-                    <li>Visual snap grid in menubar popover</li>
-                    <li>Multi-monitor support</li>
-                    <li>Customizable shortcuts with inline recorder</li>
-                    <li>First-launch onboarding with accessibility permission guide</li>
-                    <li>Launch at Login</li>
-                </ul>
-            ]]></description>
-            <pubDate>Wed, 19 Mar 2026 12:00:00 +0100</pubDate>
-            <sparkle:version>1.0.0</sparkle:version>
-            <sparkle:shortVersionString>1.0.0</sparkle:shortVersionString>
-            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
         </item>
     </channel>
 </rss>

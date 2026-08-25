@@ -87,43 +87,72 @@ enum SnapAction: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
-    /// Calculate target frame for this snap action on the given screen.
-    /// Returns frame in AX coordinates (top-left origin). `nil` für `.restore` (kommt aus der History).
+    /// Zielrahmen für diese Aktion auf dem gegebenen Bildschirm, in AX-Koordinaten
+    /// (Ursprung oben links). `nil` für `.restore` (kommt aus der History) und dann, wenn
+    /// sich die Bezugshöhe nicht bestimmen lässt.
     func targetFrame(on screen: NSScreen) -> CGRect? {
+        guard let primaryHeight = NSScreen.primaryHeight else { return nil }
+        return targetFrame(visibleFrame: screen.visibleFrame, primaryHeight: primaryHeight)
+    }
+
+    /// Reine Rechnung ohne Systemzugriff — der testbare Kern von `targetFrame(on:)`.
+    ///
+    /// - Parameters:
+    ///   - visible: nutzbarer Bereich des Zielbildschirms in Cocoa-Koordinaten (Ursprung unten links)
+    ///   - primaryHeight: Höhe des Bildschirms am globalen Ursprung (0,0) — Basis der Umrechnung
+    ///   - rounding: Kanten auf ganze Punkte runden. Für echte Bildschirmmaße immer `true`;
+    ///     `previewRect` rechnet im Einheitsquadrat und muss ungerundet bleiben.
+    func targetFrame(visibleFrame visible: CGRect, primaryHeight: CGFloat, rounding: Bool = true) -> CGRect? {
         if self == .restore { return nil }
 
-        let visible = screen.visibleFrame
-
-        // NSScreen visibleFrame (bottom-left origin) → AX-Koordinaten (top-left origin)
+        // Cocoa (unten links) → AX (oben links)
         let left   = visible.minX
         let right  = visible.maxX
-        let top    = NSScreen.primaryHeight - visible.maxY
+        let top    = primaryHeight - visible.maxY
         let bottom = top + visible.height
         let midX   = left + visible.width / 2
         let midY   = top + visible.height / 2
 
         switch self {
-        case .leftHalf:    return Self.rect(left, top,  midX,  bottom)
-        case .rightHalf:   return Self.rect(midX, top,  right, bottom)
-        case .topHalf:     return Self.rect(left, top,  right, midY)
-        case .bottomHalf:  return Self.rect(left, midY, right, bottom)
-        case .topLeft:     return Self.rect(left, top,  midX,  midY)
-        case .topRight:    return Self.rect(midX, top,  right, midY)
-        case .bottomLeft:  return Self.rect(left, midY, midX,  bottom)
-        case .bottomRight: return Self.rect(midX, midY, right, bottom)
-        case .maximize:    return Self.rect(left, top,  right, bottom)
+        case .leftHalf:    return Self.rect(left, top,  midX,  bottom, rounding)
+        case .rightHalf:   return Self.rect(midX, top,  right, bottom, rounding)
+        case .topHalf:     return Self.rect(left, top,  right, midY, rounding)
+        case .bottomHalf:  return Self.rect(left, midY, right, bottom, rounding)
+        case .topLeft:     return Self.rect(left, top,  midX,  midY, rounding)
+        case .topRight:    return Self.rect(midX, top,  right, midY, rounding)
+        case .bottomLeft:  return Self.rect(left, midY, midX,  bottom, rounding)
+        case .bottomRight: return Self.rect(midX, midY, right, bottom, rounding)
+        case .maximize:    return Self.rect(left, top,  right, bottom, rounding)
         case .center:
             let insetX = visible.width / 6   // (1 − 2/3) / 2 → bleibt 2/3 der Fläche
             let insetY = visible.height / 6
-            return Self.rect(left + insetX, top + insetY, right - insetX, bottom - insetY)
+            return Self.rect(left + insetX, top + insetY, right - insetX, bottom - insetY, rounding)
         case .restore:     return nil
         }
+    }
+
+    /// Anteil der nutzbaren Fläche, den diese Aktion belegt — Grundlage der Vorschau im
+    /// Popover. Einheitenlos, Ursprung oben links, Werte von 0 bis 1. `nil` für `.restore`.
+    ///
+    /// Leitet sich aus `targetFrame(visibleFrame:primaryHeight:)` ab, damit Vorschau und
+    /// Wirkung nicht auseinanderlaufen können.
+    var previewRect: CGRect? {
+        let unit = CGRect(x: 0, y: 0, width: 1, height: 1)
+        return targetFrame(visibleFrame: unit, primaryHeight: 1, rounding: false)
     }
 
     /// Baut den Rahmen aus GERUNDETEN Kanten — nicht aus gerundeter Breite/Höhe. Nur so stoßen linke
     /// und rechte Hälfte exakt aneinander (kein 1-px-Spalt, keine Überlappung), wenn `visibleFrame`
     /// gebrochene Maße hat: skalierte Displays, Notch-Menüleiste, Dock-Insets.
-    private static func rect(_ left: CGFloat, _ top: CGFloat, _ right: CGFloat, _ bottom: CGFloat) -> CGRect {
+    ///
+    /// `rounding` ist ausdrücklich ein Parameter und keine Heuristik über die Kantenlängen: Im
+    /// Einheitsquadrat von `previewRect` würde jede Rundung eine 0,5-Kante auf 0 oder 1 ziehen und
+    /// aus einer Hälfte die volle Breite machen.
+    private static func rect(_ left: CGFloat, _ top: CGFloat, _ right: CGFloat, _ bottom: CGFloat,
+                             _ rounding: Bool) -> CGRect {
+        guard rounding else {
+            return CGRect(x: left, y: top, width: max(0, right - left), height: max(0, bottom - top))
+        }
         let l = left.rounded(), t = top.rounded(), r = right.rounded(), b = bottom.rounded()
         return CGRect(x: l, y: t, width: max(0, r - l), height: max(0, b - t))
     }

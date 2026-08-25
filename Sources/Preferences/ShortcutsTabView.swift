@@ -27,6 +27,17 @@ struct ShortcutsTabView: View {
                         }
                         HStack {
                             Label(action.label, systemImage: action.systemImage)
+
+                            // Vom System nicht vergeben — meist hält eine andere Anwendung die
+                            // Kombination bereits. Bis 1.1.1 blieb das unsichtbar, und das
+                            // Kürzel wurde weiterhin als aktiv angezeigt.
+                            if appState.hotkeyManager?.failedRegistrations.contains(action) == true {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .font(.system(size: 10))
+                                    .foregroundStyle(.orange)
+                                    .help("Already in use by another app — this shortcut is inactive")
+                            }
+
                             Spacer()
                             ShortcutRecorderView(
                                 binding: bindings[action] ?? action.defaultBinding,
@@ -51,8 +62,19 @@ struct ShortcutsTabView: View {
 
             if let conflict = conflictMessage {
                 Label(conflict, systemImage: "exclamationmark.triangle")
-                    .foregroundStyle(.red)
+                    .foregroundStyle(Color.MikaPlus.destructive)
                     .font(.caption)
+            }
+
+            if let failed = appState.hotkeyManager?.failedRegistrations, !failed.isEmpty {
+                Label(
+                    failed.count == 1
+                        ? "1 shortcut is already in use by another app and stays inactive."
+                        : "\(failed.count) shortcuts are already in use by other apps and stay inactive.",
+                    systemImage: "exclamationmark.triangle"
+                )
+                .foregroundStyle(.orange)
+                .font(.caption)
             }
 
             HStack {
@@ -65,11 +87,23 @@ struct ShortcutsTabView: View {
             }
         }
         .onAppear {
-            bindings = appState.hotkeyManager?.currentBindings ?? [:]
+            bindings = appState.hotkeyManager?.currentBindings ?? HotkeyManager.defaultBindings()
+        }
+        .onChange(of: appState.hotkeyManager?.currentBindings ?? [:]) { _, updated in
+            // Etwa nach „Reset All Settings" im Bereich About
+            bindings = updated
         }
     }
 
     private func recordBinding(_ binding: HotkeyBinding, for action: SnapAction) {
+        // Systemkürzel sperren: Wer sich ⌘Q auf „Maximieren" legt, kann anschließend kein
+        // Programm mehr beenden — die App fängt die Kombination systemweit ab.
+        guard !binding.isReserved else {
+            conflictMessage = "\(binding.displayString) is reserved by macOS"
+            recordingAction = nil
+            return
+        }
+
         for (otherAction, otherBinding) in bindings where otherAction != action {
             if otherBinding == binding {
                 conflictMessage = "Conflict with \"\(otherAction.label)\""
@@ -85,13 +119,9 @@ struct ShortcutsTabView: View {
     }
 
     private func restoreDefaults() {
-        var defaults: [SnapAction: HotkeyBinding] = [:]
-        for action in SnapAction.allCases {
-            defaults[action] = action.defaultBinding
-        }
-        bindings = defaults
         conflictMessage = nil
-        appState.hotkeyManager?.reRegisterAll(bindings: defaults)
+        appState.hotkeyManager?.restoreDefaults()
+        bindings = appState.hotkeyManager?.currentBindings ?? HotkeyManager.defaultBindings()
     }
 }
 
@@ -139,6 +169,11 @@ struct ShortcutRecorderView: View {
             } else {
                 stopMonitoring()
             }
+        }
+        // Ohne das bliebe der Tastatur-Beobachter bestehen, wenn das Fenster während einer
+        // laufenden Aufnahme geschlossen wird — er schluckte weiterhin Tastendrücke.
+        .onDisappear {
+            stopMonitoring()
         }
     }
 

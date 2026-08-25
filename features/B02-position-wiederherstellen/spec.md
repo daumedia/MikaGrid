@@ -1,8 +1,12 @@
 # B02 · Position wiederherstellen — Spezifikation
 
-Status: `rekonstruiert` · Stand: 2026-08-25 · Erfasst aus: v1.1.1
+Status: `rekonstruiert` · Stand: 2026-08-25 · Erfasst aus: v1.1.1 · Repariert in: v1.2.0
 
-> **Rückerfassung.** ⚠ markiert Verhalten, das zur Klärung vorliegt.
+> **Rückerfassung, danach repariert.** Erfasst aus v1.1.1, überarbeitet in **v1.2.0**
+> (2026-08-25). Die Kriterien beschreiben den Stand **nach** der Reparatur; was vorher
+> anders war, steht in Klammern dabei. ⚠ markiert die Punkte, die **nicht** aus dem
+> Repository heraus lösbar sind. *Behobener Fehlbestand* führt jede geschlossene Lücke mit
+> ihrer Fundstelle — eine Rekonstruktion, die verschweigt, was falsch war, ist wertlos.
 
 ## Zweck
 
@@ -41,21 +45,18 @@ niemand mehr.
   dann bleibt es, wo es ist (der gesicherte Rahmen wird nicht verbraucht).
 - **AK-05** · Angenommen, die Aktion „Zurücksetzen" wird im Popover angeklickt, dann
   wirkt sie wie das Tastenkürzel.
-- **AK-06** ⚠ · Angenommen, ein Fenster wurde erst auf die linke Hälfte und dann auf die
-  rechte gesnappt, wenn ⌃⌥⌫ gedrückt wird, dann landet es auf der **linken Hälfte** —
-  nicht auf seiner ursprünglichen freien Größe.
-  *(So verhält sich der Code heute: Vor jedem Snap wird der aktuelle Rahmen gesichert und
-  der vorherige überschrieben. Siehe B01/OF-01.)*
-- **AK-07** ⚠ · Angenommen, ein Fenster wurde gesnappt und danach ändert sich sein Titel
-  — ein anderer Browser-Tab, eine gespeicherte Datei —, wenn ⌃⌥⌫ gedrückt wird, dann
-  passiert **nichts**.
-  *(Der Schlüssel enthält den Fenstertitel; nach der Änderung passt er nicht mehr. Siehe
-  OF-01.)*
-- **AK-08** ⚠ · Angenommen, eine App hat mehrere Fenster **ohne** Titel, wenn nacheinander
-  beide gesnappt werden, dann überschreibt das zweite den gesicherten Rahmen des ersten,
-  und ⌃⌥⌫ setzt beide auf denselben Rahmen.
-  *(Alle titellosen Fenster einer App teilen sich den Schlüssel `"<PID>_untitled"`.
-  Siehe OF-02.)*
+- **AK-06** · Angenommen, ein Fenster wurde erst auf die linke Hälfte und dann auf die
+  rechte gesnappt, wenn ⌃⌥⌫ gedrückt wird, dann landet es auf seiner **ursprünglichen
+  freien Größe**.
+  *(Bis 1.1.1 auf der linken Hälfte — jeder Snap überschrieb den Rücksprungpunkt.)*
+- **AK-07** · Angenommen, ein Fenster wurde gesnappt und danach ändert sich sein Titel,
+  wenn ⌃⌥⌫ gedrückt wird, dann wird es unverändert wiederhergestellt.
+  *(Bis 1.1.1 passierte nichts, weil der Titel Teil des Schlüssels war. Seit 1.2.0 ist der
+  Schlüssel das Fenster selbst, verglichen über `CFEqual`.)*
+- **AK-08** · Angenommen, eine App hat mehrere Fenster ohne Titel, wenn nacheinander beide
+  gesnappt werden, dann behält jedes seinen eigenen Rücksprungpunkt.
+  *(Bis 1.1.1 teilten sie sich den Schlüssel `"<PID>_untitled"`. Nachweis:
+  `SnapHistoryTests.differentElementsDoNotCollide`.)*
 - **AK-09** · Angenommen, die App wird beendet und neu gestartet, wenn ⌃⌥⌫ gedrückt wird,
   dann passiert nichts — die Historie ist leer.
 
@@ -90,43 +91,33 @@ Geprüft gegen `~/.claude/sdd/sicherheit.md`.
 - **EC-05** · Der gesicherte Rahmen lässt sich nicht wiederherstellen (die App verweigert
   die Größe) → dieselbe Nachkorrektur wie bei jedem Snap greift, danach wird aufgegeben.
 
-## Fehlbestand
+## Behobener Fehlbestand
 
-- **FB-01 · Der Schlüssel enthält den Fenstertitel und ist damit unbeständig.**
-  `WindowManager.windowKey(pid:window:)`. **Folge:** AK-07 — bei jeder Titeländerung
-  verliert das Fenster seinen Rücksprungpunkt, ohne dass der Nutzer erfährt, warum. Bei
-  Browsern und Editoren ist das der Normalfall, nicht die Ausnahme. Ein beständiger
-  Schlüssel wäre `kAXWindowNumber` bzw. `_AXUIElementGetWindow`.
-- **FB-02 · Titellose Fenster einer App kollidieren.** Derselbe Ort. **Folge:** AK-08.
-- **FB-03 · Die Historie wächst unbegrenzt.** `SnapHistory` kennt kein Limit und keine
-  Verdrängung. **Folge:** Jedes je gesnappte Fenster hinterlässt dauerhaft einen Eintrag
-  samt Titel im Arbeitsspeicher. Bei langer Laufzeit ein stetig wachsender Bestand — klein
-  je Eintrag, aber unbegrenzt, und er besteht aus genau den Zeichenketten, die man nicht
-  aufheben möchte.
-- **FB-04 · `clearAll()` wird von keiner Stelle aufgerufen.** **Folge:** Toter Code, und
-  zugleich fehlt die naheliegende Aufräumgelegenheit — etwa beim Zurücksetzen der
-  Einstellungen oder beim Entzug der Berechtigung.
-- **FB-05 · Kein Löschkonzept, weil kein Speicher — noch nicht.** Die heutige Lösung ist
-  datenschutzrechtlich unbedenklich, **weil** sie flüchtig ist. Der naheliegende
-  Wunsch „Zurücksetzen soll einen Neustart überleben" würde aus einem
-  Arbeitsspeicher-Wörterbuch eine Datei mit Fenstertiteln machen. **Folge:** Wer das
-  umsetzt, muss zwingend die Stufe im PRD neu bewerten. Dieser Eintrag ist die Bremse
-  dafür.
-- **FB-06 · Kein Test.** Die Schlüsselbildung ist reine Zeichenkettenlogik und ließe sich
-  vollständig prüfen — einschließlich der Kollision aus AK-08.
-- **FB-07 · Kein Hinweis, wenn nichts wiederherzustellen ist.** Wie überall in B01 endet
-  der Pfad still.
+- **FB-01 ✅ Der Schlüssel enthielt den Fenstertitel und war unbeständig.**
+  **Behoben:** `WindowKey` trägt das `AXUIElement` des Fensters; die Accessibility-API
+  sichert zu, dass zwei Referenzen auf dasselbe Fenster `CFEqual` sind. Nachweis:
+  `SnapHistoryTests.sameElementSameKey`.
+- **FB-02 ✅ Titellose Fenster kollidierten.** **Behoben** mit FB-01.
+- **FB-03 ✅ Die Historie wuchs unbegrenzt.** **Behoben:** Obergrenze von 100 Einträgen mit
+  Verdrängung der ältesten. Nachweis: `historyIsBounded`, `oldestEntriesAreEvicted`.
+- **FB-04 ✅ `clearAll()` wurde nie aufgerufen.** **Behoben:** Es läuft bei „Alle
+  Einstellungen zurücksetzen", bei Entzug der Berechtigung und bei einer Änderung der
+  Bildschirmanordnung.
+- **FB-05 ✅ Kein Löschkonzept, weil kein Speicher.** **Behoben** im Sinne von ausdrücklich
+  festgehalten: Die Bremse steht in `docs/datenschutz.md`. Mit FB-01 ist der Punkt
+  zusätzlich entschärft — im Arbeitsspeicher liegt kein Fenstertitel mehr, sondern eine
+  Fensterreferenz ohne Aussagewert.
+- **FB-06 ✅ Kein Test.** **Behoben:** `SnapHistoryTests` mit acht Fällen.
+- **FB-07 ✅ Kein Hinweis, wenn nichts wiederherzustellen ist.** **Behoben:**
+  `.nothingToRestore` mit Systemton und der Meldung „Nothing to restore".
 
-## Offene Fragen
+## Entschiedene Fragen
 
-- **OF-01** · Soll der Schlüssel auf die Fensternummer umgestellt werden (FB-01)? Das
-  behebt AK-07 und AK-08 gemeinsam und nimmt zugleich den Fenstertitel aus dem
-  Arbeitsspeicher — es ist die einzige Änderung in diesem Feature, die drei Befunde auf
-  einmal erledigt. — *Betreiber, empfohlen.*
-- **OF-02** · Soll die Historie begrenzt werden (FB-03)? Etwa auf die letzten 50
-  Einträge, oder durch Aufräumen beim Beenden der Ziel-App. — *Betreiber.*
-- **OF-03** · Soll wiederholtes Snappen den ursprünglichen Rahmen bewahren (AK-06)?
-  Identisch mit B01/OF-01 — dort entschieden. — *Betreiber.*
+- **OF-01 ✅ Der Schlüssel ist umgestellt** — auf die Fensterreferenz statt auf die
+  Fensternummer. `CFEqual` ist der öffentliche Weg und erspart die private Funktion
+  `_AXUIElementGetWindow`. Erledigt FB-01, FB-02 und den Personenbezug in einem Zug.
+- **OF-02 ✅ Die Historie ist auf 100 Einträge begrenzt.**
+- **OF-03 ✅ Wiederholtes Snappen bewahrt den ursprünglichen Rahmen** (B01/OF-01).
 
 ## Decision Log
 

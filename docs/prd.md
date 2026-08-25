@@ -1,10 +1,10 @@
 # Mika+Grid — Product Requirements Document
 
-Stand: 2026-08-25 · Stufe Datenschutz: A · Stack-Profil: `swiftui-macos` · Artefaktpfad: `docs/`
+Stand: 2026-08-25 · Stufe Datenschutz: A · Stack-Profil: `swiftui-macos` · Artefaktpfad: `docs/` · Version: 1.2.0
 
 > **Rekonstruktion.** Dieses PRD wurde am 2026-08-25 rückwirkend aus dem Bestand
 > geschrieben (`sdd-erfassen` Phase 1), nicht vor dem Bau. Beschrieben ist, was der Code
-> in Version 1.1.1 tut — nicht, was er tun sollte. Zielgruppe, Monetarisierung,
+> tut — Stand v1.2.0, nach der Reparatur der bei der Erfassung gefundenen Lücken. Zielgruppe, Monetarisierung,
 > Nicht-Ziele und Erfolgskriterien stammen aus vier gezielten Fragen an den Betreiber;
 > alles Übrige ist gelesen.
 
@@ -66,19 +66,19 @@ aufhört, Nachbarfunktionen mitzubauen.
 | Stack-Profil | `swiftui-macos` — Details in `~/.claude/sdd/stacks/swiftui-macos.md` |
 | Sprache / Toolchain | Swift 6.0 strict concurrency, SwiftUI, Swift Package Manager |
 | Mindestsystem | macOS 14.0 (Sonoma), `LSMinimumSystemVersion` |
-| Architektur | arm64 (Apple Silicon). Intel-Macs müssen aus dem Quelltext bauen |
+| Architektur | Universal Binary (arm64 + x86_64) über `build.sh --universal` |
 | Bundle-ID | `lu.daumedia.mikagrid` |
 | Backend | **keins** — kein Server, keine Datenbank, kein Konto |
 | Datenhaltung | ausschließlich lokal: `UserDefaults` (`hasCompletedOnboarding`, `permissionSkipped`, `hotkeyBindings`) und flüchtiger Speicher |
-| Umgebungen | keine Trennung nötig — es gibt nur den lokalen Rechner und die Auslieferung |
+| Umgebungen | keine Trennung nötig — es gibt nur den lokalen Rechner und die Auslieferung. Prüfläufe über GitHub Actions bei jedem Push |
 | Datenregion | entfällt für die App. Website auf Vercel, Downloads und Update-Feed bei GitHub (USA) |
 | Sprachen | Oberfläche, README und Website ausschließlich Englisch |
 | Monetarisierung | **keine.** Kostenlos und quelloffen; das Produkt ist Referenz und Werbeträger für daumedia.lu — Einnahmen entstehen über Auftragsarbeit |
 | Sandbox | **aus** (`com.apple.security.app-sandbox = false`). Die Accessibility-API und globale Carbon-Hotkeys funktionieren in der Sandbox nicht. Folge: Der Mac App Store ist ausgeschlossen, der Vertrieb läuft über DMG und Sparkle |
-| Library Validation | **aus** (`com.apple.security.cs.disable-library-validation = true`) — nötig, damit die ad-hoc signierte Sparkle.framework geladen wird |
+| Library Validation | **an.** Die Entitlement wurde in 1.2.0 entfernt: Sie war ein Symptom der Ad-hoc-Signatur und ist mit Developer-ID-Signatur entbehrlich (nachgewiesen). Ad-hoc-Bauten bekommen sie automatisch |
 | Externe Dienste | GitHub (Update-Feed `raw.githubusercontent.com/daumedia/MikaGrid/master/appcast.xml` und DMG-Download aus Releases) · Vercel (Hosting der Landingpage) |
-| Vertrieb | GitHub Releases als DMG, Sparkle-Selbstaktualisierung, Landingpage `mikagrid.vercel.app` |
-| Lizenz | MIT laut README und Website — **die Datei `LICENSE` fehlt im Repository** (siehe Offene Punkte) |
+| Vertrieb | GitHub Releases als signiertes DMG, Sparkle-Selbstaktualisierung, Landingpage `mikagrid.vercel.app` (noch nicht veröffentlicht) |
+| Lizenz | MIT — `LICENSE` liegt im Repository, README, Website und strukturierte Daten verweisen darauf |
 
 ## Datenschutz — Kurzfassung
 
@@ -90,11 +90,12 @@ personenbezogen, nichts verlässt das Gerät.
 Zwei Punkte, die die Stufe **nicht** anheben, aber benannt gehören, weil sie beim
 flüchtigen Lesen des Codes untergehen:
 
-- **Fenstertitel werden gelesen und im Arbeitsspeicher gehalten.** Der Schlüssel der
-  Wiederherstellungs-Historie ist `"<PID>_<Fenstertitel>"`. Ein Fenstertitel kann einen
-  Dokumentnamen, einen E-Mail-Betreff oder eine besuchte Website enthalten — also sehr
-  wohl Personenbezug. Er wird **nie** auf die Festplatte geschrieben, nie protokolliert
-  und nie übertragen; die Historie lebt in einem Dictionary und ist beim Beenden weg.
+- **Fenstertitel werden seit 1.2.0 gar nicht mehr gelesen.** Bis dahin bildete der Titel
+  zusammen mit der Prozesskennung den Schlüssel der Wiederherstellungs-Historie und lag
+  damit im Arbeitsspeicher — ein Dokumentname oder eine besuchte Website hat sehr wohl
+  Personenbezug. Der Schlüssel ist jetzt die Fensterreferenz des Systems, eine Angabe ohne
+  jeden Aussagewert. Damit ist die einzige Stelle der App mit möglichem Personenbezug
+  entfallen.
 - **Der Update-Check erzeugt eine Verbindung zu GitHub.** Dabei sieht GitHub die
   IP-Adresse des Nutzers und den Zeitpunkt. Sparkles System-Profiling ist **nicht**
   aktiviert (`SUEnableSystemProfiling` fehlt in der `Info.plist`, Sparkle-Standard ist
@@ -113,8 +114,8 @@ Regeln, die für die ganze App gelten:
   Lesen und Setzen von Position, Größe und Titel des fokussierten Fensters. Kein
   Auslesen von Inhalten, kein Tastaturmitschnitt fremder Apps.
 
-Ein Dokument `docs/datenschutz.md` existiert noch nicht. Bei Stufe A ist es eine halbe
-Seite; es fehlt trotzdem (siehe Offene Punkte).
+Ausführlich in `docs/datenschutz.md`; die öffentliche Fassung steht unter `/privacy` auf
+der Landingpage.
 
 ## Feature-Inventar
 
@@ -140,26 +141,33 @@ einzeln bestätigt — kein Agent kennt die Absicht hinter dem Code.
 
 ## Offene Punkte
 
-- **`LICENSE` fehlt** (2026-08-25). README verlinkt `[MIT](LICENSE)`, die Landingpage
-  sagt „MIT-licensed — the full source is on GitHub". Die Datei existiert im Repository
-  nicht. Ohne sie ist der Quelltext rechtlich *nicht* MIT-lizenziert, sondern ohne
-  Nutzungsrechte — eine Zusage, die der Bestand nicht hält.
-- **`docs/datenschutz.md` fehlt** (2026-08-25). Bei Stufe A eine halbe Seite, aber die
-  Landingpage macht öffentliche Datenschutzaussagen, die nirgends verbindlich hinterlegt
-  sind.
-- **Kein einziger Test im Projekt** (2026-08-25). Es gibt kein `Tests/`-Verzeichnis;
-  `swift test` hat nichts auszuführen. Die Geometrieberechnung in `SnapAction.targetFrame`
-  ist reine, testbare Rechnung ohne Systemabhängigkeit — dass sie ungetestet ist, hat
-  1.1.1 mit verursacht.
-- **Zwei Release-Zweige parallel** (2026-08-25). `SUFeedURL` zeigt auf `master`,
-  entwickelt wird auf `main`. Beide sind aktuell deckungsgleich (0 Commits Abstand). Läuft
-  einer davon vor, erreicht kein Update mehr einen bestehenden Nutzer — die App sucht an
-  genau einer Stelle und nirgends sonst.
-- **Auslieferung ist ad-hoc signiert und nicht notarisiert** (2026-08-25). Die FAQ der
-  Landingpage sagt das offen und erklärt den Rechtsklick-Umweg. Für ein öffentlich
-  verteiltes Produkt ist es trotzdem der Punkt mit der größten Hebelwirkung — Details
-  gehören in die Rückerfassung von B09.
-- **Ausdrücklich offen gelassen** (2026-08-25): „Fenster auf den nächsten Bildschirm
-  verschieben" und „eigene Raster / Drittel" wurden **nicht** als Nicht-Ziele erklärt.
-  Sie sind heute nicht gebaut, aber auch nicht ausgeschlossen. Wer sie baut, legt ein
-  neues Feature mit eigener Nummer an, das unter *Abhängigkeiten* auf B01 verweist.
+Die sechs Punkte, die bei der Erfassung notiert wurden, sind bis auf zwei geschlossen.
+
+| Punkt | Stand |
+|---|---|
+| `LICENSE` fehlte | ✅ ergänzt (MIT, 2026) |
+| `docs/datenschutz.md` fehlte | ✅ ergänzt, dazu `/privacy` und `/legal` auf der Website |
+| Kein einziger Test | ✅ 45 Tests in `Tests/MikaGridTests/`, dazu CI bei jedem Push |
+| Zwei Release-Zweige parallel | ✅ entschieden: Der Feed bleibt auf `master`, weil eine Umstellung bestehende Installationen genau einmal gefährden würde. `scripts/release.sh` zieht `master` bei jedem Release mit und weist darauf hin |
+| Ad-hoc signiert, nicht notarisiert | ⚠ **teilweise:** Signiert wird jetzt mit Developer ID. Die Notarisierung ist in `release.sh` vorbereitet und läuft, sobald `NOTARY_PROFILE` gesetzt ist — die App-Store-Connect-Zugangsdaten gehören nicht ins Repository |
+| „Nächster Bildschirm" und „eigene Raster" ausdrücklich offen | unverändert offen — beides ist kein Mangel, sondern ein mögliches künftiges Feature mit eigener Nummer |
+
+### Was offen bleibt
+
+- **Notarisierung** (2026-08-25). Ein Developer-ID-Zertifikat ist vorhanden, die
+  Mitgliedschaft besteht also. Es fehlt einmalig:
+  `xcrun notarytool store-credentials MikaGrid --apple-id <id> --team-id CWJM4J4HFN
+  --password <app-spezifisch>`. Danach erledigt `scripts/release.sh` alles Weitere.
+- **Landingpage veröffentlichen** (2026-08-25). Der Bau ist geprüft, Impressum und
+  Datenschutzerklärung liegen vor, der Lizenzlink stimmt. Es fehlt die Verbindung des
+  Vercel-Projekts mit Root Directory `web`.
+
+Beide verlangen Zugangsdaten außerhalb des Repositories und sind deshalb nicht aus dem
+Quelltext heraus lösbar.
+
+### Gestalterisch offen, bewusst nicht in dieser Reparatur
+
+Heller Modus, Dynamic Type und Gestaltungs-Token (siehe `docs/design-system.md`). Das ist
+eine Aufgabe mit eigenem Umfang und eigenen Entscheidungen und gehört in ein neues Feature
+mit eigener Spec — nicht in eine Reparatur, die sonst das Erscheinungsbild ohne Anforderung
+veränderte.

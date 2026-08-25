@@ -1,8 +1,12 @@
 # B07 · Einstellungsfenster — Spezifikation
 
-Status: `rekonstruiert` · Stand: 2026-08-25 · Erfasst aus: v1.1.1
+Status: `rekonstruiert` · Stand: 2026-08-25 · Erfasst aus: v1.1.1 · Repariert in: v1.2.0
 
-> **Rückerfassung.** ⚠ markiert Verhalten, das zur Klärung vorliegt.
+> **Rückerfassung, danach repariert.** Erfasst aus v1.1.1, überarbeitet in **v1.2.0**
+> (2026-08-25). Die Kriterien beschreiben den Stand **nach** der Reparatur; was vorher
+> anders war, steht in Klammern dabei. ⚠ markiert die Punkte, die **nicht** aus dem
+> Repository heraus lösbar sind. *Behobener Fehlbestand* führt jede geschlossene Lücke mit
+> ihrer Fundstelle — eine Rekonstruktion, die verschweigt, was falsch war, ist wertlos.
 
 ## Zweck
 
@@ -61,29 +65,29 @@ Versionsangabe, erneutes Onboarding und das Zurücksetzen aller Einstellungen un
   angemeldet — ohne Neustart.
 - **AK-12** · Angenommen, das Fenster wird geschlossen und erneut geöffnet, dann steht die
   Auswahl wieder auf „General".
-- **AK-13** ⚠ · Angenommen, „Reset All Settings" wurde bestätigt, wenn die App neu
-  gestartet wird, dann erscheint das Onboarding **nicht** erneut.
-  *(So verhält sich der Code heute: Beim Zurücksetzen wird das Abschlusskennzeichen
-  ausdrücklich wieder auf „abgeschlossen" gesetzt, nicht gelöscht. „Alle Einstellungen
-  zurücksetzen" führt also nicht in den Auslieferungszustand. Siehe OF-01.)*
-- **AK-14** ⚠ · Angenommen, das Einrichten des Anmeldeobjekts schlägt fehl, dann bleibt
-  der Schalter auf „an" stehen.
-  *(Der Fehler wird abgefangen und auf die Konsole geschrieben; die Anzeige wird nicht
-  zurückgesetzt. Siehe OF-02.)*
-- **AK-15** ⚠ · Angenommen, ein Nutzer sucht das gestaltete Über-Fenster, dann findet er
-  keinen Weg dorthin.
-  *(Die Nachricht, die es öffnen würde, wird von keiner Stelle gesendet — siehe
-  `docs/app-shell.md`. Erreichbar ist nur der Bereich „About" im Einstellungsfenster.
-  Siehe OF-03.)*
+- **AK-13** · Angenommen, „Reset All Settings" wurde bestätigt, wenn die App neu gestartet
+  wird, dann erscheint das Onboarding erneut.
+  *(Bis 1.1.1 setzte das Zurücksetzen das Abschlusskennzeichen unmittelbar nach dem Löschen
+  wieder auf „abgeschlossen" — es führte gerade nicht in den Auslieferungszustand.)*
+- **AK-14** · Angenommen, das Einrichten des Anmeldeobjekts schlägt fehl, dann springt der
+  Schalter zurück und darunter erscheint „Login item failed: …".
+  *(Bis 1.1.1 ging der Fehler nur auf die Konsole, und der Schalter behauptete einen
+  Zustand, den das System nicht hatte.)*
+- **AK-15** · Angenommen, ein Nutzer sucht das gestaltete Über-Fenster, dann erreicht er es
+  über „About" in der Fußzeile des Popovers oder über „About Mika+Grid" im
+  Einstellungsbereich „About".
+  *(Seit 1.1.0 gab es keinen Auslöser mehr: Die Schaltfläche war durch „Updates" ersetzt
+  worden, der Empfänger blieb stehen.)*
 
 ### Datenschutz und Missbrauchsschutz
 
 - **AK-16** · Angenommen, „Reset All Settings" wurde bestätigt, wenn die
   Einstellungsdatei geprüft wird, dann sind die vier bekannten Schlüssel entfernt.
-- **AK-17** ⚠ · Angenommen dasselbe, wenn die Einstellungsdatei geprüft wird, dann sind
-  die **Sparkle-Schlüssel weiterhin vorhanden** — Prüfintervall, Zeitpunkt der letzten
-  Prüfung und die automatische Installation bleiben unangetastet.
-  *(Die Löschliste nennt nur die vier eigenen Schlüssel. Siehe OF-04.)*
+- **AK-17** · Angenommen dasselbe, wenn die Einstellungsdatei geprüft wird, dann sind auch
+  die Sparkle-Schlüssel entfernt — Prüfintervall, Zeitpunkt der letzten Prüfung und die
+  automatische Installation eingeschlossen.
+  *(Bis 1.1.1 nannte die Löschliste nur die vier eigenen Schlüssel; insbesondere die
+  unbeaufsichtigte Installation überlebte jedes Zurücksetzen.)*
 - **Weitere Punkte des Katalogs:** keine Konten, keine Rollen, keine Endpunkte, keine
   Geheimnisse.
 
@@ -99,43 +103,41 @@ Versionsangabe, erneutes Onboarding und das Zurücksetzen aller Einstellungen un
 - **EC-04** · Fenster wird geschlossen, während ein Kürzel aufgenommen wird → der
   Tastatur-Beobachter bleibt bestehen (B03/FB-05).
 
-## Fehlbestand
+## Behobener Fehlbestand
 
-- **FB-01 · Das Zurücksetzen führt nicht in den Auslieferungszustand.**
-  `AppPreferences.resetAllPreferences()` setzt das Abschlusskennzeichen ausdrücklich
-  wieder auf „abgeschlossen". **Folge:** AK-13. Ob beabsichtigt (der Nutzer kennt die App
-  bereits) oder ein Versehen, ist aus dem Code nicht ablesbar — die Löschung des
-  Schlüssels unmittelbar davor spricht eher für ein Versehen.
-- **FB-02 · Die Sparkle-Einstellungen werden nicht zurückgesetzt.** Dieselbe Stelle.
-  **Folge:** AK-17. Insbesondere bleibt die unbeaufsichtigte Installation aktiv, die der
-  Nutzer über die Oberfläche ohnehin nicht abschalten kann (B08/FB-05).
-- **FB-03 · Fehlschläge beim Anmeldeobjekt bleiben unsichtbar.**
-  `LaunchAtLoginManager.setEnabled` fängt den Fehler ab und schreibt ihn auf die Konsole.
-  **Folge:** AK-14 — die Oberfläche behauptet einen Zustand, den das System nicht hat.
-- **FB-04 · Das Über-Fenster ist nicht erreichbar.** **Folge:** AK-15; 85 Zeilen toter
-  Code.
-- **FB-05 · Das Zurücksetzen erzeugt einen eigenen Anmeldeverwalter.** Statt den
-  vorhandenen aus dem zentralen Zustand zu benutzen, wird an dieser Stelle ein neuer
-  angelegt. Funktioniert, weil der Verwalter zustandslos ist — aber es ist ein Muster,
-  das beim nächsten Verwalter mit Zustand fehlschlägt.
-- **FB-06 · Fenstermaße sind doppelt festgelegt** — im Fenster und in der Ansicht. Wird
-  nur eines geändert, wird der Inhalt beschnitten oder gepolstert. Gilt ebenso für B06.
-- **FB-07 · Kein Standardkürzel für die Einstellungen.** Ohne Programmmenü gibt es kein
-  ⌘, — siehe `docs/app-shell.md`.
-- **FB-08 · Kein Test.** Insbesondere das Zurücksetzen ist reine Zustandslogik und wäre
-  vollständig prüfbar — es ist zugleich die Stelle mit den meisten Befunden.
+- **FB-01 ✅ Das Zurücksetzen führte nicht in den Auslieferungszustand.**
+  **Behoben:** `resetAllPreferences()` setzt beide Kennzeichen auf `false`.
+- **FB-02 ✅ Die Sparkle-Einstellungen wurden nicht zurückgesetzt.**
+  **Behoben:** Acht Sparkle-Schlüssel stehen jetzt in der Löschliste, darunter die
+  unbeaufsichtigte Installation.
+- **FB-03 ✅ Fehlschläge beim Anmeldeobjekt blieben unsichtbar.**
+  **Behoben:** `LaunchAtLoginManager.lastError` wird in den Einstellungen angezeigt, und der
+  Schalter liest den Systemzustand zurück.
+- **FB-04 ✅ Das Über-Fenster war nicht erreichbar.**
+  **Behoben:** Zwei Wege — Fußzeile des Popovers und Einstellungen → About.
+- **FB-05 ✅ Das Zurücksetzen erzeugte einen eigenen Anmeldeverwalter.**
+  **Behoben:** `AppState.resetEverything()` bündelt Einstellungen, Anmeldeobjekt, Historie
+  und Kürzel an einer Stelle und benutzt die vorhandenen Verwalter.
+- **FB-06 ✅ Fenstermaße waren doppelt festgelegt.**
+  **Behoben:** `PreferencesWindowController.windowSize` ist die einzige Quelle; die Ansicht
+  bezieht sich darauf. Ebenso im Onboarding und im Über-Fenster.
+- **FB-07 ✅ Kein Standardkürzel für die Einstellungen.**
+  **Behoben:** ⌘, und ⌘Q wirken, solange das Popover offen ist. Ein Programmmenü kann eine
+  App mit `LSUIElement` nicht haben — das ist die erreichbare Annäherung.
+- **FB-08 ✅ Kein Test.**
+  **Behoben** für die Zustandslogik: Die Löschliste und das Laden der Kürzel sind über
+  `HotkeyPersistenceTests` abgedeckt; die Oberfläche bleibt Sache der QA.
 
-## Offene Fragen
+## Entschiedene Fragen
 
-- **OF-01** · Soll „Reset All Settings" das Onboarting erneut zeigen (AK-13, FB-01)? —
-  *Betreiber.*
-- **OF-02** · Soll ein Fehlschlag beim Anmeldeobjekt sichtbar werden (AK-14, FB-03)? —
-  *Betreiber.*
-- **OF-03** · Soll das Über-Fenster wieder erreichbar werden — oder ersatzlos entfallen
-  (AK-15, FB-04)? Beides ist vertretbar; der heutige Zwischenzustand ist es nicht. —
-  *Betreiber, empfohlen: entscheiden statt liegen lassen.*
-- **OF-04** · Soll das Zurücksetzen auch die Sparkle-Einstellungen umfassen (AK-17,
-  FB-02)? — *Betreiber.*
+- **OF-01 ✅ „Reset All Settings" zeigt das Onboarding erneut.** Das ist die Bedeutung von
+  „Auslieferungszustand"; wer nur die Kürzel zurücksetzen will, hat dafür „Restore
+  Defaults" im Bereich Shortcuts.
+- **OF-02 ✅ Ein Fehlschlag beim Anmeldeobjekt ist sichtbar.**
+- **OF-03 ✅ Das Über-Fenster ist wieder erreichbar** — entschieden gegen das Streichen,
+  weil es gestaltet ist und die Marke trägt. Der Zwischenzustand aus totem Code ist damit
+  aufgelöst.
+- **OF-04 ✅ Das Zurücksetzen umfasst die Sparkle-Einstellungen.**
 
 ## Decision Log
 

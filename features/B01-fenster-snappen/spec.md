@@ -1,8 +1,12 @@
 # B01 · Fenster snappen — Spezifikation
 
-Status: `rekonstruiert` · Stand: 2026-08-25 · Erfasst aus: v1.1.1
+Status: `rekonstruiert` · Stand: 2026-08-25 · Erfasst aus: v1.1.1 · Repariert in: v1.2.0
 
-> **Rückerfassung.** ⚠ markiert Verhalten, das zur Klärung vorliegt.
+> **Rückerfassung, danach repariert.** Erfasst aus v1.1.1, überarbeitet in **v1.2.0**
+> (2026-08-25). Die Kriterien beschreiben den Stand **nach** der Reparatur; was vorher
+> anders war, steht in Klammern dabei. ⚠ markiert die Punkte, die **nicht** aus dem
+> Repository heraus lösbar sind. *Behobener Fehlbestand* führt jede geschlossene Lücke mit
+> ihrer Fundstelle — eine Rekonstruktion, die verschweigt, was falsch war, ist wertlos.
 
 ## Zweck
 
@@ -73,16 +77,17 @@ Umgekehrt bauen B02, B03 und B04 darauf auf.
   nachzukorrigieren.
 - **AK-14** · Angenommen, VoiceOver läuft, wenn ein Snap abgeschlossen ist, dann ist
   `AXEnhancedUserInterface` der Ziel-App wieder eingeschaltet.
-- **AK-15** ⚠ · Angenommen, ein Fenster wurde bereits gesnappt, wenn eine zweite
-  Snap-Aktion folgt, dann wird die **gesnappte** Zwischenposition als Rücksprungpunkt
-  gemerkt, nicht die ursprüngliche.
-  *(So verhält sich der Code heute: Vor jedem Snap wird der aktuelle Rahmen gesichert.
-  Nach ⌃⌥← gefolgt von ⌃⌥→ führt ⌃⌥⌫ also auf die linke Hälfte zurück, nicht auf die
-  Ausgangsgröße. Gehört zur Mechanik von B02, entsteht aber hier. Siehe OF-01.)*
-- **AK-16** ⚠ · Angenommen, Mika+Grid ist seit dem Start die einzige benutzte App, wenn
-  eine Zone im Popover angeklickt wird, dann passiert **nichts**.
-  *(Es gibt noch keine zuletzt aktive fremde App; `frontmostApplication` ist Mika+Grid
-  selbst, der Rückfallwert ist leer. Ohne Rückmeldung. Siehe OF-02.)*
+- **AK-15** · Angenommen, ein Fenster wurde bereits gesnappt, wenn eine zweite Snap-Aktion
+  folgt, dann bleibt der **ursprüngliche** Rahmen als Rücksprungpunkt erhalten: ⌃⌥← gefolgt
+  von ⌃⌥→ und dann ⌃⌥⌫ führt auf die von Hand eingestellte Größe zurück.
+  *(Bis 1.1.1 wurde vor jedem Snap gesichert und der ursprüngliche Rahmen dabei
+  überschrieben. Seit 1.2.0 prüft `isSnapTarget`, ob der aktuelle Rahmen bereits einem der
+  zehn Ziele entspricht, und sichert dann nicht.)*
+- **AK-16** · Angenommen, Mika+Grid ist seit dem Start die einzige benutzte App, wenn eine
+  Zone im Popover angeklickt wird, dann ertönt ein Systemton und im Popover erscheint
+  „No window to snap".
+  *(Bis 1.1.1 passierte wortlos nichts. Seit 1.2.0 liefert `snapFrontmostWindow` ein
+  `SnapResult`, das `AppState.performSnap` auswertet.)*
 
 ### Datenschutz und Missbrauchsschutz
 
@@ -121,44 +126,42 @@ Geprüft gegen `~/.claude/sdd/sicherheit.md`.
   Bildschirm; liefert auch der nichts, wird mit Höhe 0 gerechnet und alle Ziele wären
   falsch. Praktisch unerreichbar, aber ungesichert.
 
-## Fehlbestand
+## Behobener Fehlbestand
 
-- **FB-01 · Keine Rückmeldung, wenn ein Snap nichts bewirkt.** Alle sechs Abbruchpfade in
-  `WindowManager.snapFrontmostWindow` und `applyFrame` enden mit einem stillen `return`:
-  fehlende Berechtigung, keine Ziel-App, kein fokussiertes Fenster, kein lesbarer Rahmen,
-  nicht setzbare Attribute, kein Zielrahmen. **Folge:** Aus Nutzersicht sind sechs sehr
-  verschiedene Ursachen nicht unterscheidbar — es passiert einfach nichts.
-- **FB-02 · Kein Test für die Zielgeometrie.** `SnapAction.targetFrame` ist reine
-  Rechnung ohne Systemabhängigkeit und ließe sich vollständig prüfen: Hälften stoßen
-  aneinander, Viertel überlappen nicht, die Vereinigung ergibt den nutzbaren Bereich,
-  die zentrierte Fläche misst zwei Drittel. Nichts davon ist abgesichert — und genau
-  diese Klasse von Fehlern machte 1.1.1 nötig.
-- **FB-03 · `NSScreen.primaryHeight` kann 0 liefern.** Die Kette endet mit `?? 0`.
-  **Folge:** Jede Koordinatenumrechnung wäre still falsch statt erkennbar kaputt. Ein
-  Absturz wäre hier das bessere Verhalten.
-- **FB-04 · Die Vollbild-Annahme ist unbelegt.** Der Kommentar in `applyFrame` nennt
-  Vollbildfenster als abgedeckt, geprüft wird aber nur, ob Position und Größe setzbar
-  sind. Ob das bei einem Vollbildfenster tatsächlich `false` ergibt, ist nicht
-  nachgewiesen. **Folge:** Möglicherweise wird an einem Vollbildfenster herumgeschrieben,
-  mit unklarem Ergebnis. `kAXFullScreenAttribute` würde die Frage eindeutig beantworten.
-- **FB-05 · Die zuletzt aktive fremde App wird nie vergessen.** Die Kennung wird bei
-  jeder Aktivierung gesetzt, aber nie geleert — auch nicht, wenn die App endet. **Folge:**
-  EC-02, und im Extremfall wird eine wiederverwendete Prozesskennung getroffen.
-- **FB-06 · Keine Behandlung von Bildschirmwechseln.** Wird ein Monitor abgezogen,
-  während ein Fenster darauf liegt, ordnet macOS es neu an; die App bemerkt nichts. Kein
-  Beobachter auf `NSApplication.didChangeScreenParametersNotification`.
-- **FB-07 · Der Beobachter für App-Wechsel wird nie abgemeldet.** Bewusst so, mit
-  Begründung im Code („lebt so lange wie die App"). Sauber wäre es dennoch, und bei
-  einem künftigen zweiten `WindowManager` wäre es ein Fehler.
+Alle sieben Lücken sind in v1.2.0 geschlossen. Sie bleiben mit Fundstelle stehen, weil eine
+Rekonstruktion sonst verschweigt, was einmal falsch war.
 
-## Offene Fragen
+- **FB-01 ✅ Keine Rückmeldung, wenn ein Snap nichts bewirkt.** Alle sechs Abbruchpfade
+  endeten mit einem stillen `return`, sodass sehr verschiedene Ursachen gleich aussahen.
+  **Behoben:** `snapFrontmostWindow` liefert ein `SnapResult` mit sechs unterscheidbaren
+  Fällen; `AppState.performSnap` erzeugt Systemton und Begründung im Popover.
+  Nachweis: `SnapResultTests`.
+- **FB-02 ✅ Kein Test für die Zielgeometrie.**
+  **Behoben:** `SnapGeometryTests` prüft lückenloses Kacheln, Vollabdeckung, die
+  Zweidrittel-Fläche, gebrochene Bildschirmmaße und einen Bildschirm mit negativem
+  Ursprung. `targetFrame` ist dafür in eine reine Funktion ohne Systemzugriff aufgeteilt.
+- **FB-03 ✅ `NSScreen.primaryHeight` konnte still 0 liefern.**
+  **Behoben:** Die Eigenschaft ist optional; `targetFrame(on:)` liefert `nil` statt falsch
+  gerechneter Koordinaten.
+- **FB-04 ✅ Die Vollbild-Annahme war unbelegt.**
+  **Behoben:** `applyFrame` prüft `AXFullScreen` ausdrücklich, statt sich auf die
+  Setzbarkeit zu verlassen.
+- **FB-05 ✅ Die zuletzt aktive fremde App wurde nie vergessen.**
+  **Behoben:** Ein Beobachter auf `didTerminateApplicationNotification` leert die Kennung —
+  eine wiederverwendete Prozesskennung kann nicht mehr getroffen werden.
+- **FB-06 ✅ Keine Behandlung von Bildschirmwechseln.**
+  **Behoben:** `didChangeScreenParametersNotification` leert die Positionshistorie.
+- **FB-07 ✅ Der Beobachter wurde nie abgemeldet.**
+  **Behoben:** Alle drei Beobachter liegen in einer Liste und werden im `deinit` entfernt.
 
-- **OF-01** · Soll wiederholtes Snappen den ursprünglichen Rahmen behalten (AK-15)?
-  Heute überschreibt jeder Snap den Rücksprungpunkt. Alternative: nur sichern, wenn der
-  aktuelle Rahmen keinem Snap-Ziel entspricht. — *Betreiber.*
-- **OF-02** · Soll ein Snap ohne verfügbares Ziel eine Rückmeldung geben (AK-16, FB-01)?
-  — *Betreiber.*
-- **OF-03** · Sollen Vollbildfenster ausdrücklich erkannt werden (FB-04)? — *nach QA.*
+## Entschiedene Fragen
+
+- **OF-01 ✅ Wiederholtes Snappen bewahrt den ursprünglichen Rahmen** (`isSnapTarget`).
+  Das entspricht der Erwartung „⌃⌥⌫ bringt mich dahin zurück, wo ich war".
+- **OF-02 ✅ Ein Snap ohne Ziel gibt Rückmeldung.** Systemton immer, Begründung im Popover.
+  Eine Systembenachrichtigung wäre für einen Tastendruck zu aufdringlich und verlangte eine
+  weitere Berechtigung.
+- **OF-03 ✅ Vollbildfenster werden ausdrücklich erkannt** (siehe FB-04).
 
 ## Decision Log
 

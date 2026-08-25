@@ -19,6 +19,24 @@ struct HotkeyBinding: Codable, Equatable, Sendable {
         let key = hotkeyKeyCodeToString(keyCode)
         return mods + key
     }
+
+    /// Kombinationen, die macOS für sich beansprucht. Wer sich ⌘Q auf „Maximieren" legt, kann
+    /// anschließend kein Programm mehr beenden — die App würde das Kürzel systemweit abfangen.
+    private static let reserved: [(keyCode: UInt32, modifiers: UInt32)] = [
+        (0x0C, UInt32(cmdKey)),                        // ⌘Q  beenden
+        (0x0D, UInt32(cmdKey)),                        // ⌘W  schließen
+        (0x30, UInt32(cmdKey)),                        // ⌘⇥  Programmwechsler
+        (0x31, UInt32(cmdKey)),                        // ⌘Leertaste  Spotlight
+        (0x2F, UInt32(cmdKey)),                        // ⌘.  abbrechen
+        (0x35, UInt32(cmdKey)),                        // ⌘⎋
+        (0x0C, UInt32(cmdKey | optionKey)),            // ⌥⌘Q  abmelden
+        (0x35, UInt32(cmdKey | optionKey)),            // ⌥⌘⎋  Sofort beenden
+    ]
+
+    /// Ist diese Kombination dem System vorbehalten?
+    var isReserved: Bool {
+        Self.reserved.contains { $0.keyCode == keyCode && $0.modifiers == modifiers }
+    }
 }
 
 private func hotkeyKeyCodeToString(_ keyCode: UInt32) -> String {
@@ -52,7 +70,18 @@ private func hotkeyModifiersToSymbols(_ modifiers: UInt32) -> String {
 // MARK: - HotkeyManager
 
 @MainActor
+@Observable
 final class HotkeyManager {
+    /// Fassung des Speicherformats von `hotkeyBindings`. Wird erhöht, sobald sich der Aufbau
+    /// von `HotkeyBinding` ändert. Ohne sie verwirft ein Formatfehler stillschweigend die
+    /// gesamte Belegung des Nutzers und niemand erfährt davon.
+    static let schemaVersion = 1
+    private static let schemaVersionKey = "hotkeyBindingsSchemaVersion"
+    private static let bindingsKey = "hotkeyBindings"
+
+    // `nonisolated(unsafe)` statt `nonisolated`: Der Makro-Ausbau von @Observable erlaubt
+    // `nonisolated` auf veränderlichen gespeicherten Eigenschaften nicht. Der Zugriff erfolgt
+    // ausschließlich aus `deinit` und vom MainActor.
     nonisolated(unsafe) private var hotKeyRefs: [EventHotKeyRef?] = []
     /// Der Carbon-Handler wird GENAU EINMAL installiert. `reRegisterAll` tauscht nur die Hotkeys aus —
     /// würde hier jedes Mal ein weiterer Handler installiert, löste ein Tastendruck nach N Änderungen
@@ -63,28 +92,15 @@ final class HotkeyManager {
     nonisolated(unsafe) private static var instance: HotkeyManager?
     private(set) var currentBindings: [SnapAction: HotkeyBinding]
 
+    /// Aktionen, deren Kürzel das System nicht vergeben hat — meist, weil eine andere Anwendung
+    /// die Kombination bereits hält. Die Einstellungen zeigen das an, statt ein totes Kürzel
+    /// weiterhin als aktiv auszugeben.
+    private(set) var failedRegistrations: Set<SnapAction> = []
+
     init(onSnap: @escaping @MainActor (SnapAction) -> Void, savedBindings: [SnapAction: HotkeyBinding]? = nil) {
         self.onSnap = onSnap
 
-        // Load saved bindings or use defaults
-        if let saved = savedBindings {
-            self.currentBindings = saved
-        } else if let data = UserDefaults.standard.data(forKey: "hotkeyBindings"),
-                  let decoded = try? JSONDecoder().decode([String: HotkeyBinding].self, from: data) {
-            var bindings: [SnapAction: HotkeyBinding] = [:]
-            for (key, value) in decoded {
-                if let action = SnapAction(rawValue: key) {
-                    bindings[action] = value
-                }
-            }
-            self.currentBindings = bindings
-        } else {
-            var defaults: [SnapAction: HotkeyBinding] = [:]
-            for action in SnapAction.allCases {
-                defaults[action] = action.defaultBinding
-            }
-            self.currentBindings = defaults
-        }
+        self.currentBindings = savedBindings ?? Self.loadBindings()
 
         HotkeyManager.instance = self
         registerHotkeys()
@@ -120,6 +136,11 @@ final class HotkeyManager {
         registerHotkeys()
     }
 
+    /// Setzt alle elf Kürzel auf ihren Standard zurück und meldet sie sofort neu an.
+    func restoreDefaults() {
+        reRegisterAll(bindings: Self.defaultBindings())
+    }
+
     static func keyCodeToString(_ keyCode: UInt32) -> String {
         hotkeyKeyCodeToString(keyCode)
     }
@@ -136,8 +157,43 @@ final class HotkeyManager {
             dict[action.rawValue] = binding
         }
         if let data = try? JSONEncoder().encode(dict) {
-            UserDefaults.standard.set(data, forKey: "hotkeyBindings")
+            UserDefaults.standard.set(data, forKey: Self.bindingsKey)
+            UserDefaults.standard.set(Self.schemaVersion, forKey: Self.schemaVersionKey)
         }
+    }
+
+    /// Die Standardbelegung aller elf Aktionen.
+    static func defaultBindings() -> [SnapAction: HotkeyBinding] {
+        var defaults: [SnapAction: HotkeyBinding] = [:]
+        for action in SnapAction.allCases {
+            defaults[action] = action.defaultBinding
+        }
+        return defaults
+    }
+
+    /// Lädt die gespeicherte Belegung und **füllt fehlende Aktionen mit ihrem Standard auf**.
+    ///
+    /// Ohne das Auffüllen bekäme eine in einem künftigen Release ergänzte Aktion bei allen
+    /// Bestandsnutzern gar kein Kürzel: `registerHotkeys()` überspringt Aktionen ohne Belegung,
+    /// und die neue Funktion wäre per Tastatur tot, bis jemand „Restore Defaults" drückt.
+    ///
+    /// Stammt der gespeicherte Stand aus einer neueren Fassung des Formats, wird er verworfen —
+    /// besser die Standardbelegung als eine halb gelesene.
+    static func loadBindings(from defaults: UserDefaults = .standard) -> [SnapAction: HotkeyBinding] {
+        var bindings = defaultBindings()
+
+        let storedVersion = defaults.integer(forKey: schemaVersionKey)
+        guard storedVersion <= schemaVersion else { return bindings }
+
+        guard let data = defaults.data(forKey: bindingsKey),
+              let decoded = try? JSONDecoder().decode([String: HotkeyBinding].self, from: data)
+        else { return bindings }
+
+        for (key, value) in decoded {
+            guard let action = SnapAction(rawValue: key) else { continue }
+            bindings[action] = value
+        }
+        return bindings
     }
 
     private func registerHotkeys() {
@@ -169,6 +225,7 @@ final class HotkeyManager {
         // Signature: "MKGD" (MiKaGriD)
         let signature: OSType = 0x4D4B4744
 
+        var failed: Set<SnapAction> = []
         for action in SnapAction.allCases {
             guard let binding = currentBindings[action] else { continue }
             var ref: EventHotKeyRef?
@@ -178,8 +235,11 @@ final class HotkeyManager {
             if status == noErr {
                 hotKeyRefs.append(ref)
             } else {
-                print("Failed to register hotkey \(action.rawValue): \(status)")
+                // Meist bereits von einer anderen Anwendung belegt. Das Kürzel bleibt wirkungslos —
+                // die Einstellungen zeigen das an, statt es weiter als aktiv auszugeben.
+                failed.insert(action)
             }
         }
+        failedRegistrations = failed
     }
 }

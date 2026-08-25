@@ -12,29 +12,25 @@ struct SnapZoneButton: View {
 
     @State private var isHovering = false
 
+    private static let monitorWidth: CGFloat = 40
+    private static let monitorHeight: CGFloat = 26
+
     var body: some View {
         Button {
-            appState.windowManager?.snapFrontmostWindow(to: action)
+            appState.performSnap(action)
         } label: {
             VStack(spacing: 4) {
-                // Miniature monitor with highlighted zone
                 ZStack {
-                    // Monitor outline
                     RoundedRectangle(cornerRadius: 2)
                         .stroke(Color.secondary.opacity(0.4), lineWidth: 1)
-                        .frame(width: monitorWidth, height: monitorHeight)
-
-                    // Highlighted snap zone
                     highlightedZone
                 }
-                .frame(width: monitorWidth, height: monitorHeight)
+                .frame(width: Self.monitorWidth, height: Self.monitorHeight)
 
-                // Label
                 Text(action.label)
                     .font(.system(size: 9))
                     .foregroundStyle(.secondary)
 
-                // Shortcut text
                 if let binding = appState.hotkeyManager?.currentBindings[action] {
                     Text(binding.displayString)
                         .font(.system(size: 8, design: .monospaced))
@@ -49,77 +45,34 @@ struct SnapZoneButton: View {
             )
         }
         .buttonStyle(.plain)
-        .onHover { hovering in
-            isHovering = hovering
-        }
+        .onHover { isHovering = $0 }
+        .accessibilityLabel(accessibilityLabel)
+        .accessibilityHint("Snaps the frontmost window")
     }
 
-    private var monitorWidth: CGFloat { 40 }
-    private var monitorHeight: CGFloat { 26 }
+    private var accessibilityLabel: String {
+        guard let binding = appState.hotkeyManager?.currentBindings[action] else {
+            return action.label
+        }
+        return "\(action.label), \(binding.displayString)"
+    }
 
+    /// Die eingefärbte Zielfläche — **abgeleitet aus `SnapAction.previewRect`**, nicht von Hand
+    /// nachgebaut. Bis 1.1.1 war das eine eigene Verzweigung über elf Fälle, und die zentrierte
+    /// Zone wurde dabei mit rund 80 % × 69 % statt 67 % × 67 % gezeichnet: Vorschau und Wirkung
+    /// konnten beliebig auseinanderlaufen, ohne dass es auffiel.
     @ViewBuilder
     private var highlightedZone: some View {
         let color = isHovering ? Color.MikaPlus.tealPrimary : Color.MikaPlus.tealPrimary.opacity(0.4)
 
-        switch action {
-        case .leftHalf:
-            HStack(spacing: 0) {
-                color.frame(width: monitorWidth / 2)
-                Color.clear
-            }
-        case .rightHalf:
-            HStack(spacing: 0) {
-                Color.clear
-                color.frame(width: monitorWidth / 2)
-            }
-        case .topHalf:
-            VStack(spacing: 0) {
-                color.frame(height: monitorHeight / 2)
-                Color.clear
-            }
-        case .bottomHalf:
-            VStack(spacing: 0) {
-                Color.clear
-                color.frame(height: monitorHeight / 2)
-            }
-        case .topLeft:
-            VStack(spacing: 0) {
-                HStack(spacing: 0) {
-                    color.frame(width: monitorWidth / 2, height: monitorHeight / 2)
-                    Color.clear
-                }
-                Color.clear
-            }
-        case .topRight:
-            VStack(spacing: 0) {
-                HStack(spacing: 0) {
-                    Color.clear
-                    color.frame(width: monitorWidth / 2, height: monitorHeight / 2)
-                }
-                Color.clear
-            }
-        case .bottomLeft:
-            VStack(spacing: 0) {
-                Color.clear
-                HStack(spacing: 0) {
-                    color.frame(width: monitorWidth / 2, height: monitorHeight / 2)
-                    Color.clear
-                }
-            }
-        case .bottomRight:
-            VStack(spacing: 0) {
-                Color.clear
-                HStack(spacing: 0) {
-                    Color.clear
-                    color.frame(width: monitorWidth / 2, height: monitorHeight / 2)
-                }
-            }
-        case .maximize:
+        if let unit = action.previewRect {
             color
-        case .center:
-            color
-                .padding(4)
-        case .restore:
+                .frame(width: Self.monitorWidth * unit.width,
+                       height: Self.monitorHeight * unit.height)
+                .position(x: Self.monitorWidth * unit.midX,
+                          y: Self.monitorHeight * unit.midY)
+        } else {
+            // `.restore` hat keine feste Zielfläche
             Image(systemName: "arrow.uturn.backward")
                 .font(.system(size: 12))
                 .foregroundStyle(color)

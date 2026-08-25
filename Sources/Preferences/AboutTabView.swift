@@ -49,11 +49,19 @@ struct AboutTabView: View {
 
                     Divider()
 
+                    Button {
+                        NotificationCenter.default.post(name: .showAbout, object: nil)
+                    } label: {
+                        Label("About Mika+Grid", systemImage: "info.circle")
+                    }
+
+                    Divider()
+
                     Button(role: .destructive) {
                         showResetConfirmation = true
                     } label: {
                         Label("Reset All Settings", systemImage: "trash")
-                            .foregroundStyle(.red)
+                            .foregroundStyle(Color.MikaPlus.destructive)
                     }
                 }
                 .padding(4)
@@ -61,14 +69,10 @@ struct AboutTabView: View {
             .alert("Reset All Settings?", isPresented: $showResetConfirmation) {
                 Button("Cancel", role: .cancel) {}
                 Button("Reset", role: .destructive) {
-                    appState.preferences.resetAllPreferences()
-
-                    // Re-register defaults
-                    var defaults: [SnapAction: HotkeyBinding] = [:]
-                    for action in SnapAction.allCases {
-                        defaults[action] = action.defaultBinding
-                    }
-                    appState.hotkeyManager?.reRegisterAll(bindings: defaults)
+                    // Ein Aufruf für alles — Einstellungen, Anmeldeobjekt, Historie und Kürzel.
+                    // Bis 1.1.1 lag die Fachlogik auf zwei Stellen verteilt, und wer das
+                    // Zurücksetzen anderswo aufrief, vergaß die Kürzel.
+                    appState.resetEverything()
                 }
             } message: {
                 Text("This will reset all shortcuts and preferences to their defaults.")

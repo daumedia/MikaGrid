@@ -8,6 +8,10 @@ import SwiftUI
 
 @MainActor
 final class OnboardingWindowController: NSObject, NSWindowDelegate {
+    /// Einzige Quelle für das Fenstermaß — bis 1.1.1 stand es zusätzlich im SwiftUI-Rahmen,
+    /// und eine Änderung an nur einer Stelle beschnitt den Inhalt.
+    static let windowSize = NSSize(width: 480, height: 560)
+
     private var window: NSWindow?
     private let appState: AppState
 
@@ -23,7 +27,7 @@ final class OnboardingWindowController: NSObject, NSWindowDelegate {
         }
 
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 480, height: 560),
+            contentRect: NSRect(origin: .zero, size: Self.windowSize),
             styleMask: [.titled, .closable, .fullSizeContentView],
             backing: .buffered,
             defer: false
@@ -36,7 +40,14 @@ final class OnboardingWindowController: NSObject, NSWindowDelegate {
 
         let contentView = OnboardingView(
             appState: appState,
-            onDismiss: { [weak self] in self?.close() }
+            onFinish: { [weak self] in
+                // NUR hier gilt der Ablauf als abgeschlossen. Bis 1.1.1 setzte auch jedes
+                // Wegklicken das Kennzeichen — wer das Fenster schloss, um es später anzusehen,
+                // bekam es nie wieder zu Gesicht.
+                self?.appState.preferences.hasCompletedOnboarding = true
+                self?.close()
+            },
+            onCancel: { [weak self] in self?.close() }
         )
         window.contentView = NSHostingView(rootView: contentView)
         window.center()
@@ -52,7 +63,6 @@ final class OnboardingWindowController: NSObject, NSWindowDelegate {
     }
 
     func windowWillClose(_ notification: Notification) {
-        appState.preferences.hasCompletedOnboarding = true
         window = nil
     }
 }

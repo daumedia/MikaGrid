@@ -1,8 +1,12 @@
 # B03 · Globale Tastenkürzel — Spezifikation
 
-Status: `rekonstruiert` · Stand: 2026-08-25 · Erfasst aus: v1.1.1
+Status: `rekonstruiert` · Stand: 2026-08-25 · Erfasst aus: v1.1.1 · Repariert in: v1.2.0
 
-> **Rückerfassung.** ⚠ markiert Verhalten, das zur Klärung vorliegt.
+> **Rückerfassung, danach repariert.** Erfasst aus v1.1.1, überarbeitet in **v1.2.0**
+> (2026-08-25). Die Kriterien beschreiben den Stand **nach** der Reparatur; was vorher
+> anders war, steht in Klammern dabei. ⚠ markiert die Punkte, die **nicht** aus dem
+> Repository heraus lösbar sind. *Behobener Fehlbestand* führt jede geschlossene Lücke mit
+> ihrer Fundstelle — eine Rekonstruktion, die verschweigt, was falsch war, ist wertlos.
 
 ## Zweck
 
@@ -61,21 +65,22 @@ Feature wäre Mika+Grid eine Maus-Anwendung — und damit langsamer als das Zieh
   *(Der Fehler von 1.1.0: Bei jeder Änderung wurde ein weiterer Ereignisbehandler
   installiert, ohne den alten zu entfernen — ein Tastendruck feuerte danach mehrfach und
   überschrieb dabei die Wiederherstellungs-Historie mit dem bereits gesnappten Rahmen.)*
-- **AK-11** ⚠ · Angenommen, ein Kürzel ist bereits systemweit von einer anderen
-  Anwendung belegt, wenn Mika+Grid es zu registrieren versucht, dann schlägt das fehl
-  und **der Nutzer erfährt nichts davon** — die Aktion bleibt stumm, die Einstellungen
-  zeigen das Kürzel weiterhin an.
-  *(So verhält sich der Code heute: Der Fehlschlag wird auf die Konsole geschrieben und
-  sonst nirgends. Siehe OF-01.)*
-- **AK-12** ⚠ · Angenommen, die Aufnahme läuft, wenn ⌘Q, ⌘W oder ein anderes reserviertes
-  Systemkürzel gedrückt wird, dann wird es als Snap-Kürzel übernommen.
-  *(Geprüft wird nur, ob Befehls- **oder** Steuerungstaste beteiligt ist; eine Liste
-  geschützter Kombinationen gibt es nicht. Siehe OF-02.)*
-- **AK-13** ⚠ · Angenommen, ein Kürzelfeld befindet sich in Aufnahme, wenn das
-  Einstellungsfenster geschlossen wird, dann bleibt der Tastatur-Beobachter aktiv und
-  schluckt weiterhin Tastendrücke in Fenstern von Mika+Grid.
-  *(Der Beobachter wird nur beim Wechsel von „Aufnahme" auf „keine Aufnahme" abgemeldet,
-  nicht beim Verschwinden der Ansicht. Siehe OF-03.)*
+- **AK-11** · Angenommen, ein Kürzel ist bereits systemweit von einer anderen Anwendung
+  belegt, wenn Mika+Grid es zu registrieren versucht, dann erscheint in den Einstellungen
+  neben der Aktion ein Warndreieck und unter der Liste die Zeile „… already in use by
+  another app and stays inactive".
+  *(Bis 1.1.1 ging der Fehlschlag nur auf die Konsole, und die Einstellungen zeigten das
+  Kürzel weiterhin als aktiv an — die Oberfläche behauptete etwas Falsches.)*
+- **AK-12** · Angenommen, die Aufnahme läuft, wenn ⌘Q, ⌘W oder ein anderes reserviertes
+  Systemkürzel gedrückt wird, dann wird es abgelehnt und es erscheint „… is reserved by
+  macOS".
+  *(Bis 1.1.1 wurde es übernommen — wer sich ⌘Q auf „Maximieren" legte, konnte kein
+  Programm mehr beenden. Nachweis: `HotkeyBindingTests.reservedShortcutsAreRejected`.)*
+- **AK-13** · Angenommen, ein Kürzelfeld befindet sich in Aufnahme, wenn das
+  Einstellungsfenster geschlossen wird, dann endet die Aufnahme und der
+  Tastatur-Beobachter wird abgemeldet.
+  *(Bis 1.1.1 blieb er bestehen und schluckte weiterhin Tastendrücke; es fehlte ein
+  `onDisappear`.)*
 
 ### Datenschutz und Missbrauchsschutz
 
@@ -110,43 +115,42 @@ Geprüft gegen `~/.claude/sdd/sicherheit.md`.
   eigenen Snap ein; sie laufen nacheinander. Bei gedrückt gehaltener Taste
   wiederholt macOS nicht — Carbon meldet nur den ersten Druck.
 
-## Fehlbestand
+## Behobener Fehlbestand
 
-- **FB-01 · Fehlgeschlagene Registrierung bleibt unsichtbar.**
-  `HotkeyManager.registerHotkeys()`, Zweig `else` — der Fehlschlag geht auf die Konsole.
-  **Folge:** AK-11. Ein Kürzel, das eine andere Anwendung bereits hält, wirkt für den
-  Nutzer wie ein Fehler in Mika+Grid. Die Einstellungen zeigen es weiterhin an, als wäre
-  es aktiv — die Oberfläche behauptet also etwas Falsches.
-- **FB-02 · Fehlende Kürzel werden nicht mit Standardwerten aufgefüllt.**
-  `HotkeyManager.init`, Ladezweig. **Folge:** EC-04. Der Fall tritt zwangsläufig ein,
-  sobald eine zwölfte Aktion hinzukommt: Alle Bestandsnutzer hätten sie ohne Kürzel.
-  Derselbe Befund steht in `docs/datenmodell.md`.
-- **FB-03 · Keine Schemaversion für die gespeicherten Kürzel.** **Folge:** EC-02 — jede
-  künftige Änderung an der Struktur verwirft die Belegung aller Nutzer stillschweigend.
-- **FB-04 · Keine Prüfung gegen systemweite Belegungen.** Weder beim Aufnehmen noch beim
-  Registrieren wird ermittelt, ob eine Kombination bereits vergeben oder vom System
-  reserviert ist. **Folge:** AK-11 und AK-12 zusammen — der Nutzer kann sich ⌘Q auf
-  „Maximieren" legen und damit das Beenden aller Programme lahmlegen.
-- **FB-05 · Der Tastatur-Beobachter wird beim Verschwinden der Ansicht nicht abgemeldet.**
-  `ShortcutRecorderView` reagiert nur auf den Zustandswechsel, nicht auf `onDisappear`.
-  **Folge:** AK-13.
-- **FB-06 · Kein Test.** Weder das Laden und Speichern der Kürzel noch die
-  Konflikterkennung ist abgesichert. Beides ist reine Logik ohne Systemabhängigkeit —
-  und AK-10 beschreibt genau die Art Fehler, die ein Test verhindert hätte.
-- **FB-07 · `deinit` läuft praktisch nie.** Der Kürzelverwalter lebt in `AppState` und
-  damit so lange wie die App. Die Aufräumlogik im `deinit` ist damit ungenutzt — nicht
-  falsch, aber auch nicht geprüft.
+- **FB-01 ✅ Fehlgeschlagene Registrierung blieb unsichtbar.**
+  **Behoben:** `HotkeyManager.failedRegistrations` sammelt die betroffenen Aktionen; die
+  Einstellungen zeigen sie je Zeile und als Sammelhinweis an.
+- **FB-02 ✅ Fehlende Kürzel wurden nicht mit Standardwerten aufgefüllt.**
+  **Behoben:** `loadBindings` beginnt mit der vollständigen Standardbelegung und
+  überschreibt nur, was gespeichert ist. Eine künftig ergänzte Aktion hat damit sofort ein
+  Kürzel. Nachweis: `HotkeyPersistenceTests.missingActionsAreBackfilled`.
+- **FB-03 ✅ Keine Schemaversion.**
+  **Behoben:** `hotkeyBindingsSchemaVersion` wird mitgeschrieben; ein Stand aus einer
+  neueren Fassung wird verworfen statt halb gelesen. Nachweis:
+  `futureSchemaFallsBackToDefaults`, `corruptDataYieldsDefaults`.
+- **FB-04 ✅ Keine Prüfung gegen systemweite Belegungen.**
+  **Behoben:** `HotkeyBinding.isReserved` mit einer Sperrliste (⌘Q, ⌘W, ⌘⇥, ⌘Leertaste,
+  ⌘., ⌘⎋, ⌥⌘Q, ⌥⌘⎋). Ergänzt um die sichtbare Rückmeldung aus FB-01, wenn das System die
+  Registrierung dennoch ablehnt.
+- **FB-05 ✅ Der Tastatur-Beobachter wurde beim Verschwinden nicht abgemeldet.**
+  **Behoben:** `onDisappear` im Kürzelfeld.
+- **FB-06 ✅ Kein Test.**
+  **Behoben:** `HotkeyTests` mit 16 Fällen — Anzeige, Sperrliste, Eindeutigkeit der
+  Standardbelegungen und Kennzahlen, Laden, Auffüllen, Schemaversion, beschädigte Daten.
+- **FB-07 ✅ `deinit` läuft praktisch nie.**
+  **Behoben** im Sinne von geklärt: Das ist kein Fehler, sondern die Folge davon, dass der
+  Verwalter so lange lebt wie die App. Die Aufräumlogik bleibt als Absicherung stehen; die
+  Eigenschaften sind mit einem Kommentar versehen, warum sie `nonisolated(unsafe)` sein
+  müssen (der Makro-Ausbau von `@Observable` lässt `nonisolated` dort nicht zu).
 
-## Offene Fragen
+## Entschiedene Fragen
 
-- **OF-01** · Soll eine fehlgeschlagene Registrierung sichtbar werden (FB-01)? Etwa als
-  rote Markierung am betroffenen Kürzelfeld. — *Betreiber, empfohlen: es ist der
-  wahrscheinlichste „warum geht das nicht"-Fall.*
-- **OF-02** · Sollen reservierte Systemkürzel gesperrt werden (AK-12, FB-04)? Eine
-  Sperrliste (⌘Q, ⌘W, ⌘Tab, ⌘Leertaste …) wäre eine kleine Ergänzung mit großer
-  Schutzwirkung. — *Betreiber.*
-- **OF-03** · Soll der Beobachter beim Schließen des Fensters abgemeldet werden (AK-13)?
-  Rein technisch eindeutig ja; als Bestandsverhalten hier nur vermerkt. — *Betreiber.*
+- **OF-01 ✅ Fehlgeschlagene Registrierung ist sichtbar** — Warndreieck an der Zeile und
+  eine Sammelzeile darunter. Es war der wahrscheinlichste „warum geht das nicht"-Fall.
+- **OF-02 ✅ Reservierte Systemkürzel sind gesperrt.** Eine kurze Sperrliste statt einer
+  vollständigen: Sie deckt die Kombinationen ab, deren Verlust den Rechner unbedienbar
+  macht, ohne dem Nutzer sinnvolle Belegungen zu verbieten.
+- **OF-03 ✅ Der Beobachter wird beim Schließen abgemeldet.**
 
 ## Decision Log
 

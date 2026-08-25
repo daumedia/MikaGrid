@@ -11,15 +11,19 @@ struct PopoverGridView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Header
             headerView
                 .padding(.horizontal, 16)
                 .padding(.top, 14)
                 .padding(.bottom, 10)
 
-            // Accessibility warning
             if !appState.accessibilityManager.isGranted {
                 accessibilityWarning
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 10)
+            }
+
+            if let feedback = appState.snapFeedback {
+                feedbackBanner(feedback)
                     .padding(.horizontal, 16)
                     .padding(.bottom, 10)
             }
@@ -27,7 +31,6 @@ struct PopoverGridView: View {
             Divider()
                 .padding(.horizontal, 12)
 
-            // Snap Grid
             snapGrid
                 .padding(.horizontal, 16)
                 .padding(.vertical, 12)
@@ -35,14 +38,21 @@ struct PopoverGridView: View {
             Divider()
                 .padding(.horizontal, 12)
 
-            // Footer
             footerView
                 .padding(.horizontal, 16)
                 .padding(.vertical, 10)
         }
         .frame(width: 280)
+        .animation(.easeInOut(duration: 0.15), value: appState.snapFeedback)
+        .animation(.easeInOut(duration: 0.15), value: appState.accessibilityManager.isGranted)
         .onAppear {
             appState.accessibilityManager.checkPermission()
+            // Solange das Popover sichtbar ist, folgt die Ampel dem System. Ohne den Takt bliebe
+            // sie orange, wenn der Nutzer die Berechtigung nebenan gerade erteilt.
+            appState.accessibilityManager.startPolling()
+        }
+        .onDisappear {
+            appState.accessibilityManager.stopPolling()
         }
     }
 
@@ -60,13 +70,18 @@ struct PopoverGridView: View {
 
             Spacer()
 
-            Circle()
-                .fill(appState.accessibilityManager.isGranted ? Color.green : Color.orange)
-                .frame(width: 8, height: 8)
+            // Symbol UND Farbe: Ein reiner Farbpunkt ist bei Rot-Grün-Schwäche nicht lesbar.
+            Image(systemName: appState.accessibilityManager.isGranted
+                  ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
+                .font(.system(size: 11))
+                .foregroundStyle(appState.accessibilityManager.isGranted ? Color.green : Color.orange)
+                .accessibilityLabel(appState.accessibilityManager.isGranted
+                                    ? "Accessibility permission granted"
+                                    : "Accessibility permission missing")
         }
     }
 
-    // MARK: - Accessibility Warning
+    // MARK: - Banner
 
     private var accessibilityWarning: some View {
         Button {
@@ -89,25 +104,40 @@ struct PopoverGridView: View {
             .clipShape(RoundedRectangle(cornerRadius: 6))
         }
         .buttonStyle(.plain)
+        .accessibilityLabel("Accessibility permission required. Opens System Settings.")
+    }
+
+    /// Grund des letzten fehlgeschlagenen Snaps. Bis 1.1.1 endeten alle Fehlerpfade still —
+    /// aus Nutzersicht war „keine Berechtigung" von „kein Fenster" nicht zu unterscheiden.
+    private func feedbackBanner(_ message: String) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: "info.circle.fill")
+                .font(.system(size: 11))
+                .foregroundStyle(Color.MikaPlus.tealLight)
+            Text(message)
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+            Spacer()
+        }
+        .padding(8)
+        .background(Color.MikaPlus.tealPrimary.opacity(0.1))
+        .clipShape(RoundedRectangle(cornerRadius: 6))
+        .transition(.opacity)
+        .accessibilityLabel(message)
     }
 
     // MARK: - Snap Grid
 
     private var snapGrid: some View {
         VStack(spacing: 8) {
-            // Row 1: Halves
             HStack(spacing: 8) {
                 SnapZoneButton(action: .leftHalf, appState: appState)
                 SnapZoneButton(action: .rightHalf, appState: appState)
             }
-
-            // Row 2: Top/Bottom halves
             HStack(spacing: 8) {
                 SnapZoneButton(action: .topHalf, appState: appState)
                 SnapZoneButton(action: .bottomHalf, appState: appState)
             }
-
-            // Row 3: Quarters
             HStack(spacing: 8) {
                 SnapZoneButton(action: .topLeft, appState: appState)
                 SnapZoneButton(action: .topRight, appState: appState)
@@ -116,45 +146,57 @@ struct PopoverGridView: View {
                 SnapZoneButton(action: .bottomLeft, appState: appState)
                 SnapZoneButton(action: .bottomRight, appState: appState)
             }
-
-            // Row 4: Maximize, Center, Restore
             HStack(spacing: 8) {
                 SnapZoneButton(action: .maximize, appState: appState)
                 SnapZoneButton(action: .center, appState: appState)
                 SnapZoneButton(action: .restore, appState: appState)
             }
         }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Snap zones")
     }
 
     // MARK: - Footer
 
     private var footerView: some View {
         HStack {
-            Button("Preferences") {
+            // ⌘, und ⌘Q gibt es sonst nirgends: Eine App mit `LSUIElement` hat kein
+            // Programmmenü. Solange das Popover offen ist, greifen die gewohnten Kürzel
+            // wenigstens hier.
+            footerButton("Preferences") {
                 NotificationCenter.default.post(name: .showPreferences, object: nil)
             }
-            .buttonStyle(.plain)
-            .font(.system(size: 11))
-            .foregroundStyle(.secondary)
+            .keyboardShortcut(",", modifiers: .command)
 
             Spacer()
 
-            Button("Updates") {
+            footerButton("Updates") {
                 appState.sparkleUpdater.checkForUpdates()
             }
-            .buttonStyle(.plain)
-            .font(.system(size: 11))
-            .foregroundStyle(.secondary)
 
             Spacer()
 
-            Button("Quit") {
+            // Seit 1.1.0 gab es keinen Weg mehr zum Über-Fenster: Die Schaltfläche wurde durch
+            // „Updates" ersetzt, der Empfänger blieb stehen. Jetzt hängt es wieder am Menü.
+            footerButton("About") {
+                NotificationCenter.default.post(name: .showAbout, object: nil)
+            }
+
+            Spacer()
+
+            footerButton("Quit") {
                 NSApp.terminate(nil)
             }
+            .keyboardShortcut("q", modifiers: .command)
+        }
+    }
+
+    private func footerButton(_ title: String, action: @escaping () -> Void) -> some View {
+        Button(title, action: action)
             .buttonStyle(.plain)
             .font(.system(size: 11))
             .foregroundStyle(.secondary)
-        }
+            .accessibilityLabel(title)
     }
 }
 

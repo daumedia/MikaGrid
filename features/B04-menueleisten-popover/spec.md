@@ -1,8 +1,12 @@
 # B04 · Menüleisten-Popover — Spezifikation
 
-Status: `rekonstruiert` · Stand: 2026-08-25 · Erfasst aus: v1.1.1
+Status: `rekonstruiert` · Stand: 2026-08-25 · Erfasst aus: v1.1.1 · Repariert in: v1.2.0
 
-> **Rückerfassung.** ⚠ markiert Verhalten, das zur Klärung vorliegt.
+> **Rückerfassung, danach repariert.** Erfasst aus v1.1.1, überarbeitet in **v1.2.0**
+> (2026-08-25). Die Kriterien beschreiben den Stand **nach** der Reparatur; was vorher
+> anders war, steht in Klammern dabei. ⚠ markiert die Punkte, die **nicht** aus dem
+> Repository heraus lösbar sind. *Behobener Fehlbestand* führt jede geschlossene Lücke mit
+> ihrer Fundstelle — eine Rekonstruktion, die verschweigt, was falsch war, ist wertlos.
 
 ## Zweck
 
@@ -58,18 +62,18 @@ die Kürzel beibringt.
 - **AK-10** · Angenommen dasselbe, wenn „Updates" angeklickt wird, dann startet eine
   Update-Prüfung.
 - **AK-11** · Angenommen dasselbe, wenn „Quit" angeklickt wird, dann endet die App.
-- **AK-12** ⚠ · Angenommen, eine Zone wurde angeklickt, dann bleibt das Popover
-  **geöffnet**.
-  *(So verhält sich der Code heute: Es gibt keinen Schließbefehl. Praktisch für mehrere
-  Snaps hintereinander, unerwartet für den, der einen Menübefehl erwartet. Siehe OF-01.)*
-- **AK-13** ⚠ · Angenommen, die Zone „Center" wird betrachtet, wenn ihre Vorschau mit der
-  tatsächlichen Wirkung verglichen wird, dann zeigt die Vorschau eine **zu große** Fläche:
-  rund 80 % der Breite und 69 % der Höhe statt der tatsächlichen zwei Drittel.
-  *(Die Vorschau entsteht aus einem festen Innenabstand von 4 pt auf einer Fläche von
-  40 × 26 pt, nicht aus der Zielgeometrie. Siehe OF-02.)*
-- **AK-14** ⚠ · Angenommen, die Berechtigung wird erteilt, während das Popover offen ist,
-  dann bleibt die Ampel orange, bis das Popover geschlossen und erneut geöffnet wird.
-  *(Deckungsgleich mit B05/AK-11.)*
+- **AK-12** · Angenommen, eine Zone wurde angeklickt, dann bleibt das Popover geöffnet.
+  *(Bewusst so: Das Popover ist für mehrere Snaps hintereinander gedacht, und die
+  Zielanwendung bleibt dabei durchgehend die richtige. Siehe OF-01.)*
+- **AK-13** · Angenommen, die Zone „Center" wird betrachtet, wenn ihre Vorschau mit der
+  tatsächlichen Wirkung verglichen wird, dann zeigt sie zwei Drittel in Breite und Höhe.
+  *(Bis 1.1.1 rund 80 % × 69 %, weil die Vorschau von Hand nachgebaut war. Seit 1.2.0 wird
+  sie aus `SnapAction.previewRect` abgeleitet. Nachweis:
+  `SnapPreviewTests.centerPreviewIsTwoThirds`.)*
+- **AK-14** · Angenommen, die Berechtigung wird erteilt, während das Popover offen ist,
+  dann wechselt die Anzeige binnen etwa einer Sekunde auf grün, ohne dass das Popover
+  geschlossen werden muss.
+  *(Seit 1.2.0 läuft die Abfrage, solange das Popover sichtbar ist.)*
 
 ### Datenschutz und Missbrauchsschutz
 
@@ -89,40 +93,38 @@ die Kürzel beibringt.
 - **EC-04** · Heller Systemmodus → Popover und Einstellungen erscheinen hell, Onboarding
   und Über-Fenster bleiben dunkel. Siehe `docs/design-system.md`.
 
-## Fehlbestand
+## Behobener Fehlbestand
 
-- **FB-01 · Die Vorschau kennt die echte Zielgeometrie nicht.** `SnapZoneButton` baut
-  alle elf Zielflächen als eigenen Verzweigungsblock aus Stapeln nach; maßgeblich ist
-  aber `SnapAction.targetFrame`. **Folge:** AK-13. Die beiden Darstellungen können
-  beliebig auseinanderlaufen, ohne dass es auffällt — und tun es bereits. Bemerkenswert:
-  Die Landingpage rechnet dieselbe Zone korrekt mit zwei Dritteln (B10/AK-08).
-- **FB-02 · Kein Zugang für Hilfstechnologien.** Keine Beschriftung, kein Hinweistext,
-  keine Angabe des Zustands. **Folge:** Für VoiceOver sind elf Schaltflächen ohne
-  brauchbare Ansage vorhanden. Die einzige Beschriftung ist 9-pt-Text.
-- **FB-03 · Die Ampel ist allein farbcodiert.** Ein 8-pt-Punkt in Grün oder Orange, ohne
-  Form- oder Textunterschied. **Folge:** Für Menschen mit Rot-Grün-Schwäche nicht
-  unterscheidbar. Die Statuszeile im Einstellungsfenster macht es besser — dort gibt es
-  Symbol **und** Text.
-- **FB-04 · Kein Menüleistensymbol als Bilddatei.** Das Symbol ist ein Systemzeichen.
-  `scripts/build.sh` sucht `MenubarIconTemplate.png` und `…@2x.png` in `Resources/` —
-  **beide existieren nicht**, der Kopierschritt läuft bei jedem Bau ins Leere. **Folge:**
-  Kein Schaden, aber toter Code im Bauskript und ein Hinweis darauf, dass hier einmal
-  etwas anderes geplant war.
-- **FB-05 · Die Zustandsprüfung hängt am Erscheinen.** Kein laufender Takt, keine
-  Beobachtung. **Folge:** AK-14.
-- **FB-06 · Kein Weg zum Über-Fenster.** Die Fußzeile führt „Preferences", „Updates" und
-  „Quit". Bis 1.1.0 stand hier „About"; seither ist das gestaltete Über-Fenster
-  unerreichbar. Siehe B07 und `docs/app-shell.md`.
-- **FB-07 · Kein Test.** Die Zuordnung von Aktion zu Vorschaufläche ist reine Logik und
-  ließe sich gegen `targetFrame` prüfen — genau der Vergleich, der FB-01 aufgedeckt hätte.
+- **FB-01 ✅ Die Vorschau kannte die echte Zielgeometrie nicht.**
+  **Behoben:** `SnapAction.previewRect` leitet die Fläche aus derselben Rechnung ab wie
+  `targetFrame`; die Verzweigung über elf Fälle in `SnapZoneButton` ist entfallen.
+  Nachweis: `SnapPreviewTests.previewMatchesTarget` vergleicht beide Seiten für alle
+  Aktionen. Ein Test dieser Reihe deckte während der Reparatur einen Rundungsfehler in der
+  neuen Ableitung auf.
+- **FB-02 ✅ Kein Zugang für Hilfstechnologien.**
+  **Behoben:** Jede Zone trägt Beschriftung und Hinweistext samt Kürzel, das Raster ist als
+  Gruppe ausgewiesen, die Statusanzeige und die Fußzeilenbefehle sind beschriftet.
+- **FB-03 ✅ Die Ampel war allein farbcodiert.**
+  **Behoben:** Häkchen bzw. Warndreieck **und** Farbe — bei Rot-Grün-Schwäche lesbar.
+- **FB-04 ✅ Kein Menüleistensymbol als Bilddatei.**
+  **Behoben:** Der ins Leere laufende Kopierschritt ist aus `scripts/build.sh` entfernt.
+  Das Systemzeichen bleibt und passt sich hell/dunkel von selbst an.
+- **FB-05 ✅ Die Zustandsprüfung hing am Erscheinen.**
+  **Behoben:** Das Popover meldet einen Abfragebedarf an, solange es sichtbar ist.
+- **FB-06 ✅ Kein Weg zum Über-Fenster.**
+  **Behoben:** Die Fußzeile führt wieder „About"; zusätzlich gibt es den Eintrag im
+  Einstellungsbereich „About".
+- **FB-07 ✅ Kein Test.**
+  **Behoben:** `SnapPreviewTests` prüft die Vorschau gegen die Zielgeometrie.
 
-## Offene Fragen
+## Entschiedene Fragen
 
-- **OF-01** · Soll sich das Popover nach einem Zonenklick schließen (AK-12)? Dagegen
-  spricht das schnelle Anordnen mehrerer Fenster, dafür die Erwartung an ein Menü. —
-  *Betreiber.*
-- **OF-02** · Soll die Vorschau aus `SnapAction.targetFrame` abgeleitet werden (AK-13,
-  FB-01)? Behebt die Abweichung dauerhaft statt einmalig. — *Betreiber, empfohlen.*
+- **OF-01 ✅ Das Popover bleibt nach einem Zonenklick offen.** Bewusst beibehalten: Wer
+  drei Fenster nacheinander anordnet, will nicht dreimal das Menü öffnen — und die
+  Zielanwendung bleibt dabei durchgehend die zuletzt aktive fremde. Der Marker ist damit
+  aufgelöst, nicht weggelassen.
+- **OF-02 ✅ Die Vorschau wird aus `SnapAction.previewRect` abgeleitet.** Damit können
+  Vorschau und Wirkung nicht mehr auseinanderlaufen — und ein Test hält es fest.
 
 ## Decision Log
 

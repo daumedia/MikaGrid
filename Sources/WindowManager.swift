@@ -27,38 +27,54 @@ final class WindowManager {
     /// (`.menuBarExtraStyle(.window)`) — dann ist `frontmostApplication` unbrauchbar als Snap-Ziel.
     private var lastForeignPID: pid_t?
 
+    /// Beobachter für App-Wechsel, -Ende und Bildschirmänderungen. Werden im `deinit` abgemeldet —
+    /// deshalb `nonisolated`, wie beim HotkeyManager: `deinit` läuft außerhalb des MainActors.
+    nonisolated(unsafe) private var observers: [NSObjectProtocol] = []
+
     init(snapHistory: SnapHistory) {
         self.snapHistory = snapHistory
-        observeAppActivation()
+        observeWorkspace()
     }
 
-    func snapFrontmostWindow(to action: SnapAction) {
-        guard AXIsProcessTrusted() else { return }
-        guard let pid = targetPID() else { return }
+    deinit {
+        for observer in observers {
+            NSWorkspace.shared.notificationCenter.removeObserver(observer)
+            NotificationCenter.default.removeObserver(observer)
+        }
+    }
+
+    @discardableResult
+    func snapFrontmostWindow(to action: SnapAction) -> SnapResult {
+        guard AXIsProcessTrusted() else { return .missingPermission }
+        guard let pid = targetPID() else { return .noTargetApp }
 
         // Der Timeout gilt laut AXUIElement.h ausschließlich für genau dieses Objekt — also pro Element
         // setzen, nicht einmal global.
         let appElement = AXUIElementCreateApplication(pid)
         AXUIElementSetMessagingTimeout(appElement, Self.messagingTimeout)
 
-        guard let window = focusedWindow(of: appElement) else { return }
+        guard let window = focusedWindow(of: appElement) else { return .noFocusedWindow }
         AXUIElementSetMessagingTimeout(window, Self.messagingTimeout)
 
-        guard let currentFrame = frame(of: window) else { return }
-        let key = windowKey(pid: pid, window: window)
+        guard let currentFrame = frame(of: window) else { return .noFocusedWindow }
+        let key = WindowKey(window)
 
         // Restore greift auf die gespeicherte Position zurück statt auf berechnete Geometrie
         if action == .restore {
-            guard let savedFrame = snapHistory.getPosition(for: key) else { return }
-            applyFrame(savedFrame, to: window, of: appElement)
-            return
+            guard let savedFrame = snapHistory.getPosition(for: key) else { return .nothingToRestore }
+            return applyFrame(savedFrame, to: window, of: appElement)
         }
 
         let screen = screenForWindow(currentFrame)
-        guard let targetFrame = action.targetFrame(on: screen) else { return }
+        guard let targetFrame = action.targetFrame(on: screen) else { return .windowNotMovable }
 
-        snapHistory.savePosition(currentFrame, for: key)
-        applyFrame(targetFrame, to: window, of: appElement)
+        // Nur sichern, wenn das Fenster NICHT bereits auf einem Snap-Ziel sitzt. Sonst überschriebe
+        // ⌃⌥← gefolgt von ⌃⌥→ den ursprünglichen Rahmen mit der linken Hälfte, und Restore führte
+        // auf eine Zwischenstation statt auf die von Hand eingestellte Größe.
+        if !isSnapTarget(currentFrame, on: screen) {
+            snapHistory.savePosition(currentFrame, for: key)
+        }
+        return applyFrame(targetFrame, to: window, of: appElement)
     }
 
     // MARK: - Ziel-App
@@ -72,19 +88,37 @@ final class WindowManager {
         return lastForeignPID
     }
 
-    /// Lebt so lange wie die App (`WindowManager` wird in `AppState.setup()` einmal erzeugt), daher
-    /// kein Deregistrieren.
-    private func observeAppActivation() {
-        NSWorkspace.shared.notificationCenter.addObserver(
-            forName: NSWorkspace.didActivateApplicationNotification,
-            object: nil,
-            queue: .main
-        ) { [weak self] notification in
+    private func observeWorkspace() {
+        let center = NSWorkspace.shared.notificationCenter
+        let ownPID = ProcessInfo.processInfo.processIdentifier
+
+        observers.append(center.addObserver(
+            forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main
+        ) { notification in
             let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication
-            guard let pid = app?.processIdentifier,
-                  pid != ProcessInfo.processInfo.processIdentifier else { return }
-            MainActor.assumeIsolated { self?.lastForeignPID = pid }
-        }
+            guard let pid = app?.processIdentifier, pid != ownPID else { return }
+            MainActor.assumeIsolated { self.lastForeignPID = pid }
+        })
+
+        // Endet die gemerkte App, zeigt ihre PID ins Leere — und könnte vom System sogar an einen
+        // fremden Prozess neu vergeben werden. Deshalb vergessen statt hoffen.
+        observers.append(center.addObserver(
+            forName: NSWorkspace.didTerminateApplicationNotification, object: nil, queue: .main
+        ) { notification in
+            let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication
+            guard let pid = app?.processIdentifier else { return }
+            MainActor.assumeIsolated {
+                if self.lastForeignPID == pid { self.lastForeignPID = nil }
+            }
+        })
+
+        // Wird ein Monitor abgezogen, ordnet macOS die Fenster neu an: Gespeicherte Rahmen zeigen
+        // dann auf Koordinaten, die es nicht mehr gibt.
+        observers.append(NotificationCenter.default.addObserver(
+            forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main
+        ) { _ in
+            MainActor.assumeIsolated { self.snapHistory.clearAll() }
+        })
     }
 
     // MARK: - Anwenden
@@ -102,10 +136,14 @@ final class WindowManager {
     /// Danach Read-back und bis zu `maxAttempts` Durchgänge. Abbruch bei Stillstand (zwei identische
     /// Messungen ⇒ die App KANN den Rahmen nicht erfüllen: Mindestgröße, Zeichenraster im Terminal)
     /// und bei Überschreiten von `deadline`.
-    private func applyFrame(_ target: CGRect, to window: AXUIElement, of appElement: AXUIElement) {
-        // Dialoge, nicht größenveränderbare und Vollbild-Fenster gar nicht erst anfassen
+    private func applyFrame(_ target: CGRect, to window: AXUIElement, of appElement: AXUIElement) -> SnapResult {
+        // Vollbild ausdrücklich prüfen: Ein Vollbildfenster meldet Position und Größe teils als
+        // setzbar, ignoriert die Werte aber — der Snap liefe ins Leere, ohne dass es auffiele.
+        guard !isFullScreen(window) else { return .windowNotMovable }
+
+        // Dialoge und nicht größenveränderbare Fenster gar nicht erst anfassen
         guard isSettable(kAXPositionAttribute, on: window),
-              isSettable(kAXSizeAttribute, on: window) else { return }
+              isSettable(kAXSizeAttribute, on: window) else { return .windowNotMovable }
 
         // Ist Enhanced UI aktiv, ANIMIERT AppKit die AX-Rahmenänderung — genau dann landet beim ersten
         // Auslösen nur die Größe. Für die Dauer der Writes aus, danach IMMER zurück (VoiceOver!).
@@ -121,12 +159,13 @@ final class WindowManager {
             write(position: target.origin, to: window)
             write(size: target.size, to: window)
 
-            guard let actual = frame(of: window) else { return }
-            if actual.isNear(target, tolerance: Self.tolerance) { return }
-            if let previous, actual.isNear(previous, tolerance: 0.5) { return }  // Stillstand
-            if Date() >= expiry { return }
+            guard let actual = frame(of: window) else { return .noFocusedWindow }
+            if actual.isNear(target, tolerance: Self.tolerance) { return .applied }
+            if let previous, actual.isNear(previous, tolerance: 0.5) { return .applied }  // Stillstand
+            if Date() >= expiry { return .applied }
             previous = actual
         }
+        return .applied
     }
 
     private func write(position: CGPoint, to window: AXUIElement) {
@@ -192,20 +231,32 @@ final class WindowManager {
         return settable.boolValue
     }
 
+    /// `kAXFullScreenAttribute` ist nicht in allen SDK-Fassungen als Konstante vorhanden; der
+    /// Attributname ist seit 10.7 stabil.
+    private func isFullScreen(_ window: AXUIElement) -> Bool {
+        var ref: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(window, "AXFullScreen" as CFString, &ref) == .success,
+              let value = ref as? Bool else { return false }
+        return value
+    }
+
     // MARK: - Screens & Keys
 
     private func screenForWindow(_ axFrame: CGRect) -> NSScreen {
         // AX-Mittelpunkt (top-left) → NSScreen-Koordinaten (bottom-left)
-        let center = CGPoint(x: axFrame.midX, y: NSScreen.primaryHeight - axFrame.midY)
+        let primaryHeight = NSScreen.primaryHeight ?? 0
+        let center = CGPoint(x: axFrame.midX, y: primaryHeight - axFrame.midY)
         for screen in NSScreen.screens where screen.frame.contains(center) { return screen }
         return NSScreen.main ?? NSScreen.screens[0]
     }
 
-    private func windowKey(pid: pid_t, window: AXUIElement) -> String {
-        var titleValue: CFTypeRef?
-        AXUIElementCopyAttributeValue(window, kAXTitleAttribute as CFString, &titleValue)
-        let title = (titleValue as? String) ?? "untitled"
-        return "\(pid)_\(title)"
+    /// Sitzt der Rahmen bereits auf einem der zehn Snap-Ziele dieses Bildschirms?
+    private func isSnapTarget(_ frame: CGRect, on screen: NSScreen) -> Bool {
+        for action in SnapAction.allCases {
+            guard let target = action.targetFrame(on: screen) else { continue }
+            if frame.isNear(target, tolerance: Self.tolerance) { return true }
+        }
+        return false
     }
 }
 
@@ -214,8 +265,11 @@ final class WindowManager {
 extension NSScreen {
     /// Höhe des Screens am globalen Ursprung (0,0) — Basis jeder Cocoa↔AX-Umrechnung.
     /// `NSScreen.screens.first` ist NICHT garantiert dieser Screen (Anordnung in den Systemeinstellungen).
-    static var primaryHeight: CGFloat {
-        (NSScreen.screens.first { $0.frame.origin == .zero } ?? NSScreen.screens.first)?.frame.height ?? 0
+    ///
+    /// `nil`, wenn sich kein Bildschirm bestimmen lässt. Ein stiller Rückfall auf 0 machte jede
+    /// Koordinatenumrechnung falsch, statt den Snap erkennbar abzubrechen.
+    static var primaryHeight: CGFloat? {
+        (NSScreen.screens.first { $0.frame.origin == .zero } ?? NSScreen.screens.first)?.frame.height
     }
 }
 
