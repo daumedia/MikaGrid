@@ -131,9 +131,14 @@ aus" gilt für den **heutigen Bauweg**, nicht für das Produkt.
   dass ein Shortcut eingerichtet werden muss — nicht erst nach der Installation.
 - **AK-21** · Angenommen, die Datenschutzangaben des Stores werden geprüft, dann geben sie
   an, dass keine Daten erhoben werden.
-- **AK-22** · Angenommen, eine neue Fassung erscheint im Store, wenn ein Nutzer der
+- **AK-22** ⚠ · ~~Angenommen, eine neue Fassung erscheint im Store, wenn ein Nutzer der
   DMG-Fassung nach Updates sucht, dann bekommt er weiterhin die DMG-Fassung über Sparkle
-  angeboten — die beiden Vertriebswege stören einander nicht.
+  angeboten — die beiden Vertriebswege stören einander nicht.~~
+  **Hinfällig seit der Entscheidung zu OF-04 (2026-08-26).** Beide Fassungen tragen
+  dieselbe Bundle-Kennung und sind deshalb nicht nebeneinander installierbar. Was bleibt
+  und weiter gilt: Die Store-Fassung liefert **kein** Sparkle mit und trägt keinen
+  Update-Feed (das deckt AK-02 ab). Wer beide Wege gleichzeitig ausspielen will, muss
+  OF-04 zurücknehmen.
 
 ### E · Datenschutz und Missbrauchsschutz
 
@@ -187,15 +192,24 @@ Geprüft gegen `~/.claude/sdd/sicherheit.md`.
   Prüfung ist keine Zusicherung — 941 Tiles wurde erst nach einer Ablehnung genehmigt.
   Vor dem Umbau des Onboardings sollte eine minimale Fassung eingereicht werden, um das
   früh zu erfahren. — *Betreiber, vor dem Baubeginn.*
-- **OF-02** · Lassen sich Fensterrahmen über `Find Windows` verlässlich **auslesen**, oder
-  nur filtern? Davon hängt ab, ob „Position wiederherstellen" im Store-Ziel funktioniert.
-  — *Architektur, am Versuch zu klären.*
+- **OF-02** ❌ *In T01 am Versuch geklärt: **nein**.* `Find Windows` liefert ein
+  Fenster-Objekt, dessen Textdarstellung nur den Namen der Anwendung enthält; eine
+  „Get Details of Windows"-Aktion existiert nicht. Damit ist „Position wiederherstellen"
+  im Store-Ziel **nicht baubar** und Decision Log 4 nicht haltbar. Nachweis in
+  `machbarkeit.md`.
 - **OF-03** ✅ *Im Entwurf entschieden:* XcodeGen mit `project.yml` als Wahrheit, wie im
   `swiftui-ios`-Profil des Ökosystems. Die Tests hängen künftig an der Bibliothek
   `MikaGridCore` und bleiben damit erhalten.
-- **OF-04** ✅ *Im Entwurf entschieden:* ja — `lu.daumedia.mikagrid.mas`. Sonst
-  überschreiben sich beide Installationen, teilen Einstellungen und streiten um das
-  Anmeldeobjekt.
+- **OF-04** ✅ *Vom Betreiber am 2026-08-26 anders entschieden:* **eine Kennung für beide
+  Fassungen — `lu.daumedia.mikagrid`.** In App Store Connect gibt es nur diese eine.
+  Der Entwurf hatte `.mas` vorgesehen, damit beide Installationen nebeneinander bestehen
+  können; das entfällt bewusst.
+
+  **Preis, benannt statt verschwiegen:** Zwei Apps mit derselben Kennung sind nicht
+  nebeneinander installierbar. Sie teilen die Einstellungen, LaunchServices kann sie nicht
+  auseinanderhalten, und das Anmeldeobjekt (`SMAppService`) gilt für beide. **AK-22 ist
+  damit nicht mehr erfüllbar**, solange beide Wege gleichzeitig laufen — siehe dort.
+  Folgenlos, solange nur ein Vertriebsweg ausgespielt wird.
 - **OF-05** · Wie erfährt ein Nutzer der DMG-Fassung, dass es die Store-Fassung gibt — und
   soll er das überhaupt? Ein Hinweis in der App wäre Werbung in eigener Sache.
   — *Betreiber, ohne Frist.*
@@ -205,6 +219,76 @@ Geprüft gegen `~/.claude/sdd/sicherheit.md`.
   aber den Wortlaut des Kriteriums. Zeigt der erste Bauschritt, dass dieser Weg taugt, ist
   AK-25 umzuformulieren auf „höchstens eine". — *Betreiber, nach dem ersten Bauschritt.*
   *(Aufgeworfen von `/sdd-architektur` am 2026-08-25.)*
+  **T01-Ergebnis:** Der URL-Weg **taugt nicht** — er öffnet nachweislich ein Fenster der
+  Shortcuts-App und verletzt AK-11. Umzuformulieren ist AK-25 trotzdem, aber aus einem
+  anderen Grund: Der tragfähige Weg braucht `automation.apple-events` **und**
+  `scripting-targets` — zwei Entitlement-Einträge für eine Berechtigung. *Jetzt
+  entscheidbar.*
+
+- **OF-07** ⚠ *Teilweise geklärt.* **AK-08 selbst ist erfüllt** — am ausgelieferten
+  Kurzbefehl gemessen sitzt das Fenster exakt auf `SnapAction.targetFrame`
+  (`x=0 y=33 756×949`, alle vier Werte getroffen), und das ist dieselbe Rechnung wie in
+  der Direktfassung. **Was fehlt, ist die Selbstkontrolle:** Der Entwurf sah vor, dass die
+  App den gesetzten Rahmen nachmisst (`actualX/Y/…`) — das kann Kurzbefehle nicht liefern
+  (OF-02). Die Store-Fassung merkt also nicht, wenn eine Zielanwendung den Rahmen
+  beschneidet (TextEdit rastert etwa auf Zeilenhöhen). Zu entscheiden ist nur noch, ob der
+  Entwurf diese Rückmessung streichen soll. — *Betreiber.*
+
+- **OF-08** ✅ (aus T01) · *Geklärt: `Move Window` setzt die Position exakt.* Der frühere
+  Verdacht, `WFYCoordinate` werde ignoriert, war ein Messartefakt einer Dreierkette
+  Move → Resize → Move. Mit reinem Verschieben trifft die Aktion den Sollwert bei jeder
+  Fenstergröße, im selben Koordinatensystem wie `CGWindowListCopyWindowInfo`.
+  **Auflage für T12:** Die Abfolge Position → Größe → Position ist einzeln nachzumessen —
+  `Resize Window` verschiebt das Fenster, und der abschließende Move korrigierte das im
+  Versuch nicht zuverlässig.
+
+- **OF-12** ✅ *Gelöst.* Der gerechnete Zielrahmen erreicht den Kurzbefehl — nach vier
+  Hürden, die alle nur am laufenden System zu finden waren: Zahlenfelder nehmen keinen
+  Text an (Abhilfe: Aktion „Zahl"), der Filter greift nur mit festem Namen (Abhilfe: kein
+  Filter, vorderstes Fenster), das Fensterobjekt veraltet (Abhilfe: vor jeder Aktion neu
+  suchen), die Aktionen überholen sich (Abhilfe: zwei Pausen à 0,15 s). **AK-07 ist
+  erfüllt**, Entwurfsentscheidung 9 trägt. Nachweise in `machbarkeit.md`.
+
+- **OF-14** (neu, aus der QA) · **Entwurfsentscheidung 10 ist falsch begründet.** Sie
+  schreibt für den Companion-Kurzbefehl „erst die Position, dann die Größe, dann die
+  Position erneut" und nennt als Grund den dokumentierten Shortcuts-Fehler bei randnahen
+  Fenstern. Übersehen wurde die Regel, die das Projekt seit 1.1.1 kennt und in `CLAUDE.md`
+  festhält: macOS begrenzt einen Positionswechsel gegen die **aktuelle** Fenstergröße,
+  weshalb die Direktfassung `size → position → size` schreibt. Mit der Reihenfolge aus dem
+  Entwurf traf der Kurzbefehl in 0 von 5 Läufen; umgestellt in 10 von 10 (BF-01).
+  `design.md` gehört an dieser Stelle korrigiert. — *Architektur.*
+
+- **OF-13** (neu, aus T12) · **AK-23 ist gegenstandslos geworden — im guten Sinn.** Weil
+  der Kurzbefehl ohne Filter arbeitet, braucht die Nutzlast weder Anwendungsnamen noch
+  Fenstertitel; sie trägt fünf Zahlen und einen Zufallswert. Damit verarbeitet auch die
+  Store-Fassung **nichts Personenbeziehbares**, und Decision Log 6 („Fenstertitel erlaubt,
+  wenn nötig") ist hinfällig. PRD, `docs/datenschutz.md` und die Datenschutzseite wurden
+  bereits auf die Fenstertitel-Regel umgeschrieben und sind nun **strenger als nötig** —
+  sie gehören zurückgenommen. — *Betreiber.*
+
+- **OF-11** (neu, aus T11) · **AK-26 ist nur teilweise erfüllbar.** Das Kriterium verlangt,
+  den Aufruf zu unterlassen, „wenn sein **Inhalt** vom erwarteten Aufbau abweicht". Über
+  die Skripting-Schnittstelle sind je Kurzbefehl aber nur `name`, `action count`,
+  `accepts input`, `subtitle`, `folder`, `color` und `icon` lesbar — **was die Aktionen
+  tun, ist nicht lesbar** (am System geprüft). Gebaut ist die stärkste mögliche Prüfung:
+  Name, Aktionsanzahl und Eingabeverhalten. Sie erkennt einen versehentlich ersetzten oder
+  umgebauten Kurzbefehl, aber keinen absichtlich mit gleicher Aktionszahl nachgebauten.
+  Das Kriterium ist entsprechend abzuschwächen oder als teilweise erfüllt zu führen.
+  — *Betreiber.*
+
+- **OF-10** (neu, aus T01) · **AK-10 ist eingeschränkt.** `Move Window` nimmt **keine
+  negativen Koordinaten** an: Ein Ziel auf einem Bildschirm oberhalb des Hauptbildschirms
+  bleibt wirkungslos, obwohl der Shortcut fehlerfrei durchläuft. Bildschirme rechts oder
+  unterhalb (positive Werte) sind ungetestet. Der vorgesehene Weg ist vermutlich der
+  `Display`-Parameter der Aktion, dessen Werteformat unbekannt ist. Zu klären, bevor T12
+  gebaut wird. — *Architektur, am Versuch zu klären.*
+
+- **OF-09** (neu, aus T01) · **`design.md` liegt bei den Entitlements falsch.** Es
+  behauptet, Shortcuts biete keine Zugriffsgruppen, und wählt deshalb die von Apple
+  missbilligte `temporary-exception.apple-events`. Tatsächlich bietet `Shortcuts Events`
+  die Gruppe `com.apple.shortcuts.run`; die Messung lief erfolgreich mit dem engeren
+  `scripting-targets`. Das senkt das Prüfungsrisiko und gehört in den Entwurf, bevor T05
+  gebaut wird. — *Architektur.*
 
 ## Folgeaufträge in anderen Artefakten
 

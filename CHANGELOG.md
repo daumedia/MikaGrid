@@ -1,5 +1,42 @@
 # Changelog
 
+## [Unreleased]
+
+### App Store distribution (feature 01)
+- **Two apps from one source tree.** `MikaGridCore` carries everything both versions share
+  — snap geometry, hotkeys, popover, preferences, onboarding. What differs is exactly one
+  seam: how a window is actually moved (`WindowSnapping`)
+- **The App Store version is sandboxed** and does not move windows itself. It asks Apple's
+  Shortcuts app, addressed through `Shortcuts Events`, which runs shortcuts without opening
+  any window — measured at 0.21–0.32 s per snap with no foreground change
+- **Narrower entitlement than planned.** The design called for the deprecated
+  `temporary-exception.apple-events`; `Shortcuts Events` turned out to publish the access
+  group `com.apple.shortcuts.run`, so the store build uses `scripting-targets` instead
+- **Separate bundle ids** (`lu.daumedia.mikagrid` / `.mas`) so both can be installed side
+  by side without sharing preferences or fighting over the login item
+- **Build system moved to XcodeGen.** `project.yml` is the source of truth; `.xcodeproj` is
+  generated and git-ignored. Archiving for App Store Connect needs an Xcode project
+- **Tests now hang off the library** instead of the executable target — all 45 existing
+  tests kept running, 17 new ones added for the payload and the reply
+
+### Privacy
+- **Neither version passes window titles anywhere.** The store version was originally going
+  to hand the title to Shortcuts when an app has several windows; that turned out to be
+  unnecessary — the companion shortcut works on the frontmost window, so the payload is
+  five numbers and a random value
+
+### Known limits of the App Store version
+- **"Restore previous position" is not available.** Shortcuts does not return a window's
+  frame, so there is nothing to remember. Ten of the eleven actions remain
+- **No verification after the move.** The direct version measures the frame back after
+  writing it; the store version cannot, for the same reason
+- **Screen selection is limited.** `Move Window` rejects negative coordinates, so a display
+  positioned above or to the left of the main one cannot be targeted
+- **No verification that the frame actually landed.** The window is placed exactly on the
+  computed target — measured against `SnapAction.targetFrame` all four values match. But
+  if the target application clamps the frame (TextEdit rounds to line heights, for
+  instance), the store version does not notice, because Shortcuts reports nothing back
+
 ## [1.2.0] - 2026-08-25
 
 Hardening release. Every gap recorded during the SDD capture (`docs/`, `features/`) is

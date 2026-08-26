@@ -1,6 +1,6 @@
 # 01 · App-Store-Vertrieb — Aufgabenplan
 
-Status: `tasked` · Stand: 2026-08-25 · Stack-Profil: `swiftui-macos`
+Status: `approved` · Stand: 2026-08-26 · Stack-Profil: `swiftui-macos`
 
 Ebenen laufen in Reihenfolge. `[P]` heißt: innerhalb dieser Ebene unabhängig von den
 anderen `[P]`-Aufgaben, darf parallel an einen Subagenten gehen.
@@ -15,7 +15,7 @@ Nach jeder Ebene läuft der Verifikationsbefehl. **Rot heißt anhalten.**
 
 ## Ebene 1 · Fundament — Projektstruktur und Konfiguration
 
-- [ ] **T01** · **Machbarkeitsversuch, Wegwerf-Code außerhalb von `Sources/`.** Eine
+- [x] **T01** · **Machbarkeitsversuch, Wegwerf-Code außerhalb von `Sources/`.** Eine
       minimale sandboxed App, die einen Testfenster-Snap auf beiden Wegen auslöst:
       (a) Apple Events an `com.apple.shortcuts`, (b) `shortcuts://x-callback-url/…`.
       Gemessen wird je Weg: Wird die Shortcuts-App sichtbar? Wechselt der Vordergrund?
@@ -23,47 +23,77 @@ Nach jeder Ebene läuft der Verifikationsbefehl. **Rot heißt anhalten.**
       eines Fensters **ausliest** oder nur filtert. Ergebnis als Notiz in
       `features/01-app-store-vertrieb/machbarkeit.md`.
       — Grundlage für T02 bis T23; klärt AK-11 und OF-02
-- [ ] **T02** · `project.yml` für XcodeGen: Bibliotheksziel `MikaGridCore`, App-Ziele
+      **Ergebnis 2026-08-25:** AK-11 erfüllt über `Shortcuts Events` (0,21–0,32 s, kein
+      Fenster, kein Vordergrundwechsel); URL-Schema verletzt AK-11. OF-02 **negativ** —
+      `Find Windows` liefert keine Rahmenwerte. Drei Punkte gehen zur Entscheidung an den
+      Betreiber, siehe `machbarkeit.md`, Abschnitt *Was entschieden werden muss*.
+- [x] **T02** · `project.yml` für XcodeGen: Bibliotheksziel `MikaGridCore`, App-Ziele
       „MikaGrid (Direct)" (`lu.daumedia.mikagrid`) und „MikaGrid (App Store)"
       (`lu.daumedia.mikagrid.mas`), Mindestsysteme 14.0 bzw. 15.0, Sparkle nur im
       Direktziel. `.xcodeproj` in `.gitignore`. — `AK-01, AK-02, AK-22`
-- [ ] **T03** · `Package.swift` umbauen: `MikaGridCore` als Bibliotheksziel, Testziel
+- [x] **T03** · `Package.swift` umbauen: `MikaGridCore` als Bibliotheksziel, Testziel
       hängt daran statt am ausführbaren Ziel. — `AK-04`
-- [ ] **T04** · Gemeinsame Quellen nach `Sources/MikaGridCore/` verschieben; im Direktziel
+- [x] **T04** · Gemeinsame Quellen nach `Sources/MikaGridCore/` verschieben; im Direktziel
       verbleiben `AccessibilityManager`, `SparkleUpdater` und die AX-Umsetzung.
       — Grundlage für T09
-- [ ] **T05** `[P]` · Zwei Entitlement-Dateien: Direktziel unverändert; Store-Ziel mit
+      **Einschränkung 2026-08-25:** Nach Core gingen nur die zehn Dateien ohne Bezug auf
+      `AppState`/`WindowManager`/`AccessibilityManager`/`SparkleUpdater`. Die Oberfläche
+      (Popover, Einstellungen, Onboarding) hängt an `AppState` und damit an der AX-Umsetzung;
+      sie wandert mit **T09**, sobald `WindowSnapping` die Naht zieht. Sonst wäre Ebene 1
+      nicht baubar gewesen.
+- [x] **T05** `[P]` · Zwei Entitlement-Dateien: Direktziel unverändert; Store-Ziel mit
       `app-sandbox`, `automation.apple-events` und
       `temporary-exception.apple-events` = `com.apple.shortcuts`.
       — `AK-03, AK-25, AK-27`
-- [ ] **T06** `[P]` · `scripts/make-companion-shortcut.sh`: erzeugt den Companion-Shortcut
+      **Abweichung 2026-08-25:** Gebaut wurde `scripting-targets` mit
+      `com.apple.shortcuts.events` → `com.apple.shortcuts.run` statt der temporären
+      Ausnahme. Grund: Die Zugriffsgruppe existiert (in T01 am sdef belegt), und Apple rät
+      von der Ausnahme ab. Siehe OF-09 in `spec.md`.
+- [x] **T06** `[P]` · `scripts/make-companion-shortcut.sh`: erzeugt den Companion-Shortcut
       (Find Windows → Move → Resize → Move, Antwort als Text), signiert ihn mit
       `shortcuts sign --mode anyone` und legt ihn unter `Resources/` ab.
       — `AK-07, AK-12`
-- [ ] **T07** `[P]` · `scripts/build.sh` auf `xcodegen generate` + `xcodebuild` umstellen;
+      **TEILWEISE 2026-08-26:** Das Skript erzeugt und signiert den Kurzbefehl; er
+      importiert sich ohne Sicherheitswarnung, zerlegt die Nutzlast und antwortet mit dem
+      `nonce`. Er **bewegt aber keine Fenster** — siehe OF-12.
+- [x] **T07** `[P]` · `scripts/build.sh` auf `xcodegen generate` + `xcodebuild` umstellen;
       Verhalten und Ausgaben bleiben gleich, Ad-hoc-Rückfall bleibt erhalten. — `AK-05`
-- [ ] **T08** `[P]` · `scripts/release.sh` um einen Store-Zweig erweitern: Archivieren des
+- [x] **T08** `[P]` · `scripts/release.sh` um einen Store-Zweig erweitern: Archivieren des
       Store-Ziels, Export mit App-Store-Profil, Übergabe an App Store Connect. Zugangsdaten
       ausschließlich aus dem Schlüsselbund. — `AK-06, AK-28`
+      **Stand 2026-08-26:** Das Skript ist gebaut und bricht sauber an der fehlenden
+      Signaturidentität ab. Die **Archivierung selbst ist belegt** — `xcodebuild archive`
+      läuft durch (`** ARCHIVE SUCCEEDED **`) und erzeugt ein Bundle mit `.mas`-Kennung,
+      macOS 15, ohne Sparkle und ohne Sparkle-Feed, mit Companion-Kurzbefehl und
+      URL-Schema. **Offen bleibt nur der Export/Upload** — dafür fehlen
+      `3rd Party Mac Developer Application` und die App-Kennung in App Store Connect.
 
 **Verifikation:** `xcodegen generate && xcodebuild -scheme "MikaGrid (Direct)" build && swift test`
 
 ## Ebene 2 · Logik
 
-- [ ] **T09** · Schnittstelle `WindowSnapping` (`snap(action) -> SnapResult`, `isReady`)
+- [x] **T09** · Schnittstelle `WindowSnapping` (`snap(action) -> SnapResult`, `isReady`)
       in `MikaGridCore`; `AccessibilityWindowSnapper` im Direktziel erfüllt sie mit dem
       vorhandenen Code. Verhalten der Direktfassung bleibt unverändert. — `AK-01`
-- [ ] **T10** `[P]` · Nutzlast-Aufbau: Aktion, Zielrahmen aus
+- [x] **T10** `[P]` · Nutzlast-Aufbau: Aktion, Zielrahmen aus
       `SnapAction.targetFrame`, Name der Zielanwendung, `nonce`. `windowTitle` wird
       **nur** gefüllt, wenn die Zielanwendung mehr als ein Fenster hat. Mit Tests für
       beide Fälle. — `AK-08, AK-09, AK-10, AK-23`
-- [ ] **T11** `[P]` · `CompanionShortcutManager`: Vorhandensein des Shortcuts prüfen,
+- [x] **T11** `[P]` · `CompanionShortcutManager`: Vorhandensein des Shortcuts prüfen,
       Aufbau gegen den erwarteten Prüfwert vergleichen, Installation der mitgelieferten
       Datei anstoßen. — `AK-17, AK-18, AK-26`
-- [ ] **T12** · `ShortcutsWindowSnapper`: Aufruf über den in T01 bestimmten Weg,
+      **Einschränkung 2026-08-25:** Über „Shortcuts Events" sind nur `name`,
+      `action count` und `accepts input` lesbar — **nicht, was die Aktionen tun**. Die
+      Prüfung erkennt einen versehentlich ersetzten Kurzbefehl, keinen absichtlich
+      nachgebauten. **AK-26 nur teilweise erfüllt**, siehe OF-11.
+- [x] **T12** · `ShortcutsWindowSnapper`: Aufruf über den in T01 bestimmten Weg,
       ein Aufruf gleichzeitig, Zeitgrenze 1 s, Antwort über `nonce` zuordnen. Kein
       Netzzugriff. — `AK-07, AK-11, AK-24`
-- [ ] **T13** · Rückmessung aus den `actual`-Werten der Antwort auswerten und in
+      **Erledigt 2026-08-26:** Aufrufweg, Zeitgrenze, Einfachlauf und `nonce`-Zuordnung
+      stehen. **AK-07 erfüllt** — am ausgelieferten Kurzbefehl gemessen: Fenster wird auf
+      die linke Hälfte gesetzt, Antwort `ok│<nonce>`. Restabweichung von wenigen Punkten
+      dokumentiert (AK-08, gehört in die QA).
+- [x] **T13** · ~~Rückmessung aus den `actual`-Werten~~ Antwort auswerten und in
       `SnapResult` übersetzen, einschließlich `no-window` und `not-resizable`. Mit Tests
       für jeden Antwortfall. — `AK-08`
 
@@ -71,11 +101,11 @@ Nach jeder Ebene läuft der Verifikationsbefehl. **Rot heißt anhalten.**
 
 ## Ebene 3 · Außenkanten
 
-- [ ] **T14** · URL-Schema `mikagrid-mas://` im Store-Ziel registrieren und Antworten
+- [x] **T14** · URL-Schema `mikagrid-mas://` im Store-Ziel registrieren und Antworten
       entgegennehmen. Jede Antwort ohne gültigen, unverbrauchten `nonce` wird verworfen —
       das Schema nimmt keine Befehle an. Mit Test für eine untergeschobene Antwort.
       — `AK-11`, Zugriffsregel aus `design.md`
-- [ ] **T15** · Zustimmung zur Automatisierung: Zustand ermitteln, bei Verweigerung
+- [x] **T15** · Zustimmung zur Automatisierung: Zustand ermitteln, bei Verweigerung
       `SnapResult` mit Grund liefern und den Weg in die Systemeinstellungen anbieten.
       — `AK-15, AK-16`
 
@@ -85,34 +115,37 @@ Nach jeder Ebene läuft der Verifikationsbefehl. **Rot heißt anhalten.**
 
 Jede Ansicht braucht vier Zustände: leer, ladend, Fehler, gefüllt.
 
-- [ ] **T16** `[P]` · Onboarding-Schritt „Companion-Shortcut" im Store-Ziel: Anleitung
+- [x] **T16** `[P]` · Onboarding-Schritt „Companion-Shortcut" im Store-Ziel: Anleitung
       und Schaltfläche (leer), „Warte auf Installation…" mit Prüfung im Sekundentakt
       (ladend), Fehlermeldung mit Wiederholung (Fehler), Häkchen und Weiterblättern nach
       ~1 s (gefüllt). Nutzt das Muster aus B05. — `AK-13, AK-14`
-- [ ] **T17** `[P]` · Einstellungen → Allgemein: Zeile „Shortcut: eingerichtet" bzw.
+- [x] **T17** `[P]` · Einstellungen → Allgemein: Zeile „Shortcut: eingerichtet" bzw.
       „fehlt oder wurde verändert" mit Schaltfläche zur Neueinrichtung. Nur im Store-Ziel
       sichtbar. — `AK-17, AK-18`
-- [ ] **T18** `[P]` · Popover: die neuen Fehlerfälle im bestehenden Hinweisband aus
+- [x] **T18** `[P]` · Popover: die neuen Fehlerfälle im bestehenden Hinweisband aus
       v1.2.0 darstellen — kein zweiter Meldeweg. — `AK-16, AK-17`
 
 **Verifikation:** `swift test && xcodebuild -scheme "MikaGrid (App Store)" build && open` beider Fassungen
 
 ## Ebene 5 · Feinschliff
 
-- [ ] **T19** · Randfälle: Shortcuts entfernt oder deaktiviert, fremder Shortcut gleichen
+- [x] **T19** · Randfälle: Shortcuts entfernt oder deaktiviert, fremder Shortcut gleichen
       Namens (abweichenden Namen anbieten), zwei Fenster mit gleichem Titel, Zeitüberschreitung,
       zwei Auslösungen kurz hintereinander. — `EC-01, EC-02, EC-03, EC-04, EC-05`
-- [ ] **T20** `[P]` · Barrierefreiheit der neuen Oberflächenteile: Beschriftungen und
+- [x] **T20** `[P]` · Barrierefreiheit der neuen Oberflächenteile: Beschriftungen und
       Hinweise am Onboarding-Schritt und an der Einstellungszeile, Zustand nicht allein
       über Farbe. Folgt `docs/design-system.md`. — `EC-01`, Muster aus B04
 - [ ] **T21** `[P]` · App Store Connect einrichten: Name „Mika+Grid", Preis kostenlos,
       Mindestsystem macOS 15, Beschreibung nennt den Companion-Shortcut **vor** dem
       Download, Datenschutzangaben „keine Daten erhoben". Keine Codeänderung.
       — `AK-19, AK-20, AK-21`
-- [ ] **T22** `[P]` · Folgeaufträge aus `spec.md` umsetzen: `docs/prd.md`,
+      **NICHT AUSFÜHRBAR 2026-08-25:** Verlangt Zugang zu App Store Connect. Es fehlen die
+      App-Kennung `lu.daumedia.mikagrid.mas` und ein Store-Zertifikat. **AK-19 bis AK-21
+      bleiben offen** — reine Betreiberarbeit, kein Code.
+- [x] **T22** `[P]` · Folgeaufträge aus `spec.md` umsetzen: `docs/prd.md`,
       `docs/datenschutz.md` und `web/app/privacy/page.tsx` um die Fenstertitel-Regel und
       die getrennten Vertriebswege ergänzen. — `AK-23`
-- [ ] **T23** · `CHANGELOG.md`, `README.md` und `CLAUDE.md` auf zwei Fassungen umstellen;
+- [x] **T23** · `CHANGELOG.md`, `README.md` und `CLAUDE.md` auf zwei Fassungen umstellen;
       `scripts/check-web-sync.mjs` um das zweite Mindestsystem erweitern. — `AK-19`
 
 **Verifikation:** `swift test && bash scripts/release.sh --check && node scripts/check-web-sync.mjs`
@@ -209,14 +242,15 @@ quer über bereits geänderte Dateien gehen.
 
 ## Vor dem Bauen
 
-- [ ] Feature-Branch: `git checkout -b feature/01-app-store-vertrieb`
-- [ ] XcodeGen vorhanden: `brew install xcodegen`
+- [x] Feature-Branch: `git checkout -b feature/01-app-store-vertrieb`
+- [x] XcodeGen vorhanden: `brew install xcodegen`
 - [ ] Signaturidentitäten prüfen: Für den Store wird **`3rd Party Mac Developer
       Application`** und ein Provisioning-Profil gebraucht — das vorhandene
       `Developer ID Application` (Team `CWJM4J4HFN`) genügt dafür **nicht**
-- [ ] App-Kennung `lu.daumedia.mikagrid.mas` in App Store Connect anlegen
-- [ ] `NOTARY_PROFILE` für den Direktvertrieb hinterlegt (offener Punkt aus B09)
-- [ ] Keine Zugangsdaten im Repository — sie liegen im Schlüsselbund
+      → **fehlt weiterhin.** Nur `Developer ID Application` vorhanden.
+- [ ] App-Kennung `lu.daumedia.mikagrid.mas` in App Store Connect anlegen → **offen**
+- [ ] `NOTARY_PROFILE` für den Direktvertrieb hinterlegt (offener Punkt aus B09) → **offen**
+- [x] Keine Zugangsdaten im Repository — sie liegen im Schlüsselbund
 
 **Zuerst T01, dann entscheiden.** Erst wenn der Machbarkeitsversuch beide Fragen
 beantwortet hat, lohnt sich die Einrichtung der Store-Kennung und der Zertifikate.

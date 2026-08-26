@@ -8,7 +8,7 @@
 import Testing
 import ApplicationServices
 import Foundation
-@testable import MikaGrid
+@testable import MikaGridCore
 
 @MainActor
 struct SnapHistoryTests {

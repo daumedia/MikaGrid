@@ -36,11 +36,27 @@ ein Bestandsfeature erweitert, legt ein neues Feature mit eigener Nummer an, das
 *Abhängigkeiten* darauf verweist.
 
 ## App Identity
-- **Name**: Mika+Grid
-- **Bundle ID**: lu.daumedia.mikagrid
-- **Min macOS**: 14.0 (Sonoma)
+
+**Zwei Fassungen aus einem Quelltext** (seit Feature 01). Sie unterscheiden sich an genau
+einer Stelle: wie ein Fenster bewegt wird.
+
+| | Direktvertrieb | App Store |
+|---|---|---|
+| **Bundle ID** | `lu.daumedia.mikagrid` | `lu.daumedia.mikagrid` (dieselbe) |
+| **Min macOS** | 14.0 (Sonoma) | 15.0 (Sequoia) |
+| **Sandbox** | aus | **an** |
+| **Fenster bewegt** | selbst, über die Accessibility-API | über Apples Kurzbefehle |
+| **Updates** | Sparkle | App Store |
+| **Schema** | `MikaGrid (Direct)` | `MikaGrid (App Store)` |
+
+**Beide Fassungen tragen dieselbe Bundle-Kennung** (Betreiberentscheidung 2026-08-26, OF-04
+in `features/01-app-store-vertrieb/spec.md`). Sie sind deshalb **nicht nebeneinander
+installierbar**: gemeinsame Einstellungen, gemeinsames Anmeldeobjekt, LaunchServices kann
+sie nicht unterscheiden. Solange nur ein Vertriebsweg ausgespielt wird, ist das folgenlos —
+wer beide gleichzeitig will, muss OF-04 zurücknehmen.
+
 - **Language**: Swift 6.0, SwiftUI
-- **Build System**: Swift Package Manager
+- **Build System**: XcodeGen (`project.yml`) + SwiftPM für Tests
 - **Architecture**: arm64 (Apple Silicon)
 
 ## Project Structure
@@ -49,57 +65,44 @@ MikaGrid/
 ├── CLAUDE.md                        ← you are here
 ├── README.md
 ├── CHANGELOG.md
-├── Package.swift                    ← SPM config (macOS 14+, Carbon, ApplicationServices, Sparkle)
+├── project.yml                      ← XcodeGen: DIE WAHRHEIT über beide Ziele
+├── Package.swift                    ← SwiftPM: Bibliothek + Direktziel + Tests
 ├── appcast.xml                      ← Sparkle update feed (GitHub-hosted)
 ├── .gitignore
 ├── docs/                            ← SDD-Artefakte (PRD, Datenmodell, Design-System, App-Shell)
 ├── features/                        ← SDD-Feature-Inventar (B01–B10), Specs je Feature
 ├── build.sh                         → exec scripts/build.sh
 ├── Resources/
-│   ├── Info.plist                   ← LSUIElement=true, Bundle ID
+│   ├── Info.plist                   ← Direktziel: LSUIElement=true, Bundle ID
+│   ├── Info-MAS.plist               ← Store-Ziel: macOS 15, URL-Schema, kein Sparkle
 │   ├── MikaGrid.entitlements        ← No sandbox
+│   ├── MikaGridMAS.entitlements     ← Sandbox + scripting-targets
+│   ├── MikaGridSnap.shortcut        ← signierter Companion-Kurzbefehl (mitgeliefert)
 │   ├── AppIcon.png                  ← 1024x1024 source icon
 │   └── AppIcon.icns                 ← macOS icon set
 ├── Sources/
-│   ├── MikaGridApp.swift            ← @main, MenuBarExtra + AppDelegate
-│   ├── AppState.swift               ← @Observable central state
-│   ├── AppPreferences.swift         ← UserDefaults-backed preferences
-│   ├── MikaPlusColors.swift         ← Brand colors (shared with MikaScreenSnap)
-│   ├── LaunchAtLoginManager.swift   ← SMAppService wrapper
-│   ├── AboutWindow.swift            ← About window with Mika+ branding
+│   ├── MikaGridCore/                ← BIBLIOTHEK — was beide Fassungen teilen
+│   │   ├── WindowSnapping.swift     ← DIE NAHT: snap() + readiness
+│   │   ├── UpdateChecking.swift     ← Sparkle hinter einer Schnittstelle (Store: nil)
+│   │   ├── AppState.swift           ← @Observable, kennt nur die Schnittstellen
+│   │   ├── SnapAction/-Result/-History/-Payload/-Reply.swift
+│   │   ├── HotkeyManager · AppPreferences · MikaPlusColors · LaunchAtLoginManager
+│   │   ├── PopoverGridView · SnapZoneButton · AboutWindow
+│   │   ├── Preferences/             ← Einstellungsfenster
+│   │   └── Onboarding/              ← Rahmen, Begrüßung, Kürzelübersicht
 │   │
-│   ├── # Window Management Core
-│   ├── WindowManager.swift          ← AXUIElement window manipulation
-│   ├── SnapAction.swift             ← 11 snap actions + geometry + default bindings
-│   ├── SnapHistory.swift            ← Previous positions for restore
-│   ├── AccessibilityManager.swift   ← Permission check/request/polling
+│   ├── MikaGrid/                    ← DIREKTZIEL (nicht sandboxed)
+│   │   ├── MikaGridApp.swift        ← @main
+│   │   ├── AccessibilityWindowSnapper.swift  ← erfüllt WindowSnapping über AXUIElement
+│   │   ├── WindowManager · AccessibilityManager · SparkleUpdater
+│   │   └── Onboarding/PermissionScreen.swift
 │   │
-│   ├── # Auto-Update
-│   ├── SparkleUpdater.swift         ← Sparkle wrapper (SPUStandardUpdaterController)
-│   │
-│   ├── # Global Hotkeys
-│   ├── HotkeyManager.swift          ← Carbon RegisterEventHotKey (sig: "MKGD")
-│   │
-│   ├── # Menu Bar UI
-│   ├── PopoverGridView.swift        ← Visual snap grid popover
-│   ├── SnapZoneButton.swift         ← Clickable zone with monitor preview
-│   │
-│   ├── # Settings
-│   ├── Preferences/
-│   │   ├── PreferencesStyles.swift          ← Tab enum
-│   │   ├── PreferencesWindowController.swift
-│   │   ├── PreferencesContainerView.swift   ← NavigationSplitView
-│   │   ├── GeneralTabView.swift             ← Launch at Login, animations
-│   │   ├── ShortcutsTabView.swift           ← Inline recorder + conflict detection
-│   │   └── AboutTabView.swift               ← Version, reset, onboarding
-│   │
-│   └── # Onboarding
-│       └── Onboarding/
-│           ├── OnboardingWindowController.swift
-│           ├── OnboardingView.swift         ← Paged container
-│           ├── WelcomeScreen.swift          ← "Snap. Organize. Focus."
-│           ├── PermissionScreen.swift       ← Accessibility + auto-polling
-│           └── ShortcutsScreen.swift        ← Shortcuts overview
+│   └── MikaGridMAS/                 ← APP-STORE-ZIEL (sandboxed)
+│       ├── MikaGridMASApp.swift     ← @main, nimmt mikagrid-mas:// entgegen
+│       ├── ShortcutsWindowSnapper.swift      ← erfüllt WindowSnapping über Kurzbefehle
+│       ├── ShortcutsRunner.swift    ← Apple Events an „Shortcuts Events"
+│       ├── CompanionShortcutManager.swift
+│       └── CompanionShortcutScreen.swift     ← Onboarding-Schritt
 │
 ├── scripts/
 │   ├── build.sh                     ← Build + app bundle + codesign
@@ -152,6 +155,16 @@ Brand tokens live in `web/app/globals.css` (`@theme`) and mirror
 
 ## Architecture
 
+- **`WindowSnapping` ist die einzige Naht** zwischen beiden Fassungen. Oberhalb davon ist
+  nicht erkennbar, welche läuft. Wer einen Unterschied zwischen den Fassungen braucht, baut
+  ihn **hier** ein — nicht mit `#if` verstreut über die Oberfläche
+- **Apple Events gehen an `Shortcuts Events`, nie an `Shortcuts`.** Nur der UI-lose
+  Ereignisdienst führt Kurzbefehle aus, ohne ein Fenster zu öffnen (AK-11). Apple schreibt
+  es selbst in sein Skripting-Wörterbuch. Das URL-Schema `shortcuts://` öffnet nachweislich
+  ein Fenster und ist deshalb **kein** Rückfallweg
+- **Eine leere Antwort von Kurzbefehle ist KEIN Erfolg.** Der jeweils erste Zugriff auf eine
+  neue Fähigkeit liefert eine leere Antwort ohne Fehlermeldung — dahinter steckt eine
+  einmalige Zustimmung, die macOS bei einem unsichtbaren Aufruf nicht erfragen kann
 - **AppState** — `@Observable @MainActor` central state holding all managers
 - **WindowManager** — uses `AXUIElementCreateApplication()` + `kAXFocusedWindowAttribute` to get/set window position and size
 - **Snap-Ergebnis** — `snapFrontmostWindow` liefert ein `SnapResult`; `AppState.performSnap` erzeugt daraus Systemton und Meldung. Kein Fehlerpfad darf wieder still enden
@@ -182,19 +195,36 @@ Brand tokens live in `web/app/globals.css` (`@theme`) and mirror
 
 ## Build & Run
 ```bash
-swift build                      # Debug build
-swift test                       # 45 tests — run these before touching geometry or hotkeys
+swift build                      # Debug build (Direktziel)
+swift test                       # 62 tests — run these before touching geometry or hotkeys
 bash build.sh                    # Build + app bundle + codesign (Developer ID if available)
 bash build.sh --universal        # arm64 + x86_64
 open build/Mika+Grid.app         # Launch
+
+xcodegen generate                # nach jeder Änderung an project.yml
+xcodebuild -scheme "MikaGrid (App Store)" -derivedDataPath build/xcode-mas build
 ```
+
+**Getrennte Ableitungsordner sind Pflicht.** Beide App-Ziele erzeugen `Mika+Grid.app`. Im
+gemeinsamen Produktordner überschreiben sie einander, und das Store-Bundle erbt dann
+`Sparkle.framework` aus dem Direktbau — was AK-02 ausschließt. Einmal beobachtet.
+
+**`info:`/`entitlements:` in `project.yml` ERZEUGEN die Dateien** und überschreiben dabei
+vorhandene. Deshalb werden `Info.plist` und die Entitlements nur über `INFOPLIST_FILE`
+bzw. `CODE_SIGN_ENTITLEMENTS` referenziert. Einmal hat es die Direkt-Entitlements samt
+ihrer Begründung gelöscht.
 
 ## Release
 ```bash
 bash scripts/release.sh --check  # Info.plist, CHANGELOG, appcast und web/lib abgleichen
-bash scripts/release.sh          # bauen, signieren, notarisieren, DMG, appcast-Signatur
+bash scripts/release.sh          # Direktvertrieb: bauen, signieren, notarisieren, DMG
+bash scripts/release.sh --store  # App Store: archivieren, exportieren, hochladen
 node scripts/check-web-sync.mjs  # web/lib gegen die Swift-Quellen prüfen
+bash scripts/make-companion-shortcut.sh   # Companion-Kurzbefehl neu bauen und signieren
 ```
+
+Der Store-Zweig braucht **`3rd Party Mac Developer Application`** oder
+`Apple Distribution` — eine `Developer ID`-Identität genügt dafür **nicht**.
 Notarisierung läuft, sobald `NOTARY_PROFILE` ein hinterlegtes `notarytool`-Profil nennt.
 
 ## Create DMG Installer

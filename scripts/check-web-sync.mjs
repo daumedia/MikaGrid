@@ -22,17 +22,26 @@ const check = (label, actual, expected) => {
 }
 
 const plist = read("Resources/Info.plist")
+const plistMAS = read("Resources/Info-MAS.plist")
 const appTs = read("web/lib/app.ts")
-const actionsSwift = read("Sources/SnapAction.swift")
+const actionsSwift = read("Sources/MikaGridCore/SnapAction.swift")
 const actionsTs = read("web/lib/snapActions.ts")
 
 const plistValue = (key) =>
   plist.match(new RegExp(`<key>${key}</key>\\s*<string>([^<]+)</string>`))?.[1]
+const plistMASValue = (key) =>
+  plistMAS.match(new RegExp(`<key>${key}</key>\\s*<string>([^<]+)</string>`))?.[1]
 const tsValue = (key) => appTs.match(new RegExp(`${key}:\\s*"([^"]+)"`))?.[1]
 
 console.log("Checking web/lib against the Swift sources...")
 check("version", tsValue("version"), plistValue("CFBundleShortVersionString"))
 check("minMacOS", tsValue("minMacOS"), plistValue("LSMinimumSystemVersion"))
+
+// Seit Feature 01 gibt es zwei Fassungen mit verschiedenen Mindestsystemen. Ohne diese
+// Prüfung nennt die Website weiter macOS 14, während der Store 15 verlangt.
+check("minMacOSStore", tsValue("minMacOSStore"), plistMASValue("LSMinimumSystemVersion"))
+check("beide Fassungen tragen dieselbe Version",
+      plistMASValue("CFBundleShortVersionString"), plistValue("CFBundleShortVersionString"))
 
 const dmgUrl = appTs.match(/dmgUrl:\s*\n?\s*"([^"]+)"/)?.[1] ?? ""
 const version = plistValue("CFBundleShortVersionString")

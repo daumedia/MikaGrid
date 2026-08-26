@@ -7,7 +7,7 @@
 import Testing
 import Carbon
 import Foundation
-@testable import MikaGrid
+@testable import MikaGridCore
 
 struct HotkeyBindingTests {
 

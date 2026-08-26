@@ -74,7 +74,8 @@ aufhört, Nachbarfunktionen mitzubauen.
 | Datenregion | entfällt für die App. Website auf Vercel, Downloads und Update-Feed bei GitHub (USA) |
 | Sprachen | Oberfläche, README und Website ausschließlich Englisch |
 | Monetarisierung | **keine.** Kostenlos und quelloffen; das Produkt ist Referenz und Werbeträger für daumedia.lu — Einnahmen entstehen über Auftragsarbeit |
-| Sandbox | **aus** (`com.apple.security.app-sandbox = false`). Die Accessibility-API und globale Carbon-Hotkeys funktionieren in der Sandbox nicht. Folge: Der Mac App Store ist ausgeschlossen, der Vertrieb läuft über DMG und Sparkle |
+| Sandbox | **je Fassung verschieden** (seit Feature 01). **Direktvertrieb:** aus (`app-sandbox = false`) — die Accessibility-API funktioniert in der Sandbox nicht. **App Store:** an; diese Fassung bewegt Fenster nicht selbst, sondern über Apples Kurzbefehle. Die frühere Aussage „der Mac App Store ist ausgeschlossen" galt dem **Bauweg**, nicht dem Produkt |
+| Mindestsystem | macOS 14 (Direktvertrieb) · macOS 15 (App Store — die Fensteraktionen von Kurzbefehle setzen es voraus) |
 | Library Validation | **an.** Die Entitlement wurde in 1.2.0 entfernt: Sie war ein Symptom der Ad-hoc-Signatur und ist mit Developer-ID-Signatur entbehrlich (nachgewiesen). Ad-hoc-Bauten bekommen sie automatisch |
 | Externe Dienste | GitHub (Update-Feed `raw.githubusercontent.com/daumedia/MikaGrid/master/appcast.xml` und DMG-Download aus Releases) · Vercel (Hosting der Landingpage) |
 | Vertrieb | GitHub Releases als signiertes DMG, Sparkle-Selbstaktualisierung, Landingpage `mikagrid.vercel.app` (noch nicht veröffentlicht) |
@@ -90,6 +91,12 @@ personenbezogen, nichts verlässt das Gerät.
 Zwei Punkte, die die Stufe **nicht** anheben, aber benannt gehören, weil sie beim
 flüchtigen Lesen des Codes untergehen:
 
+- **Fenstertitel werden in keiner Fassung weitergegeben.** Für die App-Store-Fassung war
+  ursprünglich vorgesehen, den Titel an Apples Kurzbefehle zu übergeben, falls die
+  Zielanwendung mehrere Fenster hat (AK-23). Das ist entfallen: Der Kurzbefehl arbeitet
+  ohne Filter auf das vorderste Fenster, weshalb die Nutzlast nur fünf Zahlen und einen
+  Zufallswert trägt. Es gibt damit **keine** Fassung, die etwas Personenbeziehbares
+  weitergibt.
 - **Fenstertitel werden seit 1.2.0 gar nicht mehr gelesen.** Bis dahin bildete der Titel
   zusammen mit der Prozesskennung den Schlüssel der Wiederherstellungs-Historie und lag
   damit im Arbeitsspeicher — ein Dokumentname oder eine besuchte Website hat sehr wohl

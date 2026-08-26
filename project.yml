@@ -1,0 +1,171 @@
+# XcodeGen — die Wahrheit über beide Bauziele (Feature 01).
+#
+# `.xcodeproj` wird daraus erzeugt und ist in `.gitignore`: Eine XML-Datei, die niemand
+# liest, taugt nicht als Quelle für Zusammenführungen.
+#
+# Erzeugen:  xcodegen generate
+# Bauen:     xcodebuild -scheme "MikaGrid (Direct)"    -derivedDataPath build/xcode-direct build
+#            xcodebuild -scheme "MikaGrid (App Store)" -derivedDataPath build/xcode-mas    build
+#
+# WICHTIG — getrennte Ableitungsordner: Beide App-Ziele erzeugen `Mika+Grid.app`. Im
+# gemeinsamen Ordner überschreiben sie einander, und das Store-Bundle erbt dann
+# Sparkle.framework aus dem Direktbau — genau das, was AK-02 ausschließt. Einmal
+# beobachtet, deshalb steht es hier. (Ein eigenes CONFIGURATION_BUILD_DIR je Ziel ist
+# KEINE Lösung: damit findet das App-Ziel das Modul MikaGridCore nicht mehr.)
+#
+# Signaturangaben stehen hier bewusst NICHT (AK-28) — Zertifikate und Profile kommen aus
+# dem Schlüsselbund bzw. aus Xcode, nie aus dem Repository.
+
+name: MikaGrid
+options:
+  bundleIdPrefix: lu.daumedia
+  deploymentTarget:
+    macOS: "14.0"
+  createIntermediateGroups: true
+  groupSortPosition: top
+
+packages:
+  Sparkle:
+    url: https://github.com/sparkle-project/Sparkle
+    from: 2.6.0
+
+targets:
+  # ---------------------------------------------------------------------------
+  # Gemeinsame Bibliothek — alles, was beide Fassungen teilen.
+  # ---------------------------------------------------------------------------
+  MikaGridCore:
+    type: framework
+    platform: macOS
+    deploymentTarget: "14.0"
+    sources:
+      - path: Sources/MikaGridCore
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: lu.daumedia.mikagrid.core
+        PRODUCT_NAME: MikaGridCore
+        SWIFT_VERSION: "6.0"
+        MARKETING_VERSION: "1.2.0"
+        CURRENT_PROJECT_VERSION: "3"
+        DEFINES_MODULE: true
+        SKIP_INSTALL: true
+        GENERATE_INFOPLIST_FILE: true
+    dependencies:
+      - sdk: Carbon.framework
+      - sdk: ApplicationServices.framework
+
+  # ---------------------------------------------------------------------------
+  # Direktvertrieb — Accessibility-API, Sparkle, macOS 14. Verhalten wie 1.2.0.
+  # ---------------------------------------------------------------------------
+  MikaGrid (Direct):
+    type: application
+    platform: macOS
+    deploymentTarget: "14.0"
+    sources:
+      - path: Sources/MikaGrid
+      - path: Resources/AppIcon.icns
+        buildPhase: resources
+    # KEIN `info:`/`entitlements:`-Block: Beide erzeugen die Datei neu und überschreiben
+    # dabei den Bestand — einmal passiert, einmal zu viel. Referenziert wird über die
+    # Build-Einstellungen.
+    settings:
+      base:
+        INFOPLIST_FILE: Resources/Info.plist
+        PRODUCT_BUNDLE_IDENTIFIER: lu.daumedia.mikagrid
+        PRODUCT_NAME: MikaGrid
+        WRAPPER_NAME: Mika+Grid.app
+        SWIFT_VERSION: "6.0"
+        MARKETING_VERSION: "1.2.0"
+        CURRENT_PROJECT_VERSION: "3"
+        ENABLE_HARDENED_RUNTIME: true
+        CODE_SIGN_ENTITLEMENTS: Resources/MikaGrid.entitlements
+        # Signiert wird von scripts/build.sh bzw. scripts/release.sh — hier reicht Xcodes
+        # lokale Signatur. Eine erzwungene Ad-hoc-Identitaet scheitert in Xcode 26.
+        CODE_SIGN_STYLE: Automatic
+    dependencies:
+      - target: MikaGridCore
+        embed: true
+      - package: Sparkle
+      - sdk: Carbon.framework
+      - sdk: ApplicationServices.framework
+
+  # ---------------------------------------------------------------------------
+  # App Store — sandboxed, über Shortcuts, macOS 15. OHNE Sparkle (AK-02).
+  #
+  # ACHTUNG — GLEICHE BUNDLE-ID WIE DAS DIREKTZIEL. Vom Betreiber so entschieden
+  # (2026-08-26): In App Store Connect gibt es nur `lu.daumedia.mikagrid`. Beide Fassungen
+  # sind deshalb NICHT nebeneinander installierbar — sie teilen Einstellungen und streiten
+  # um das Anmeldeobjekt. Solange nur ein Vertriebsweg ausgespielt wird, ist das folgenlos.
+  #
+  # Die Quellen unter Sources/MikaGridMAS entstehen in Ebene 2 (T09–T13). Bis dahin
+  # trägt dieses Ziel nur die Bibliothek; der Ordner ist angelegt, damit `xcodegen
+  # generate` durchläuft.
+  # ---------------------------------------------------------------------------
+  MikaGrid (App Store):
+    type: application
+    platform: macOS
+    deploymentTarget: "15.0"
+    sources:
+      - path: Sources/MikaGridMAS
+      - path: Resources/AppIcon.icns
+        buildPhase: resources
+      # Der Companion-Shortcut wird mitgeliefert und vom Onboarding geöffnet (T06/AK-13).
+      - path: "Resources/Mika+Grid Snap.shortcut"
+        buildPhase: resources
+        optional: true
+    settings:
+      base:
+        INFOPLIST_FILE: Resources/Info-MAS.plist
+        PRODUCT_BUNDLE_IDENTIFIER: lu.daumedia.mikagrid
+        PRODUCT_NAME: MikaGrid
+        WRAPPER_NAME: Mika+Grid.app
+        SWIFT_VERSION: "6.0"
+        MARKETING_VERSION: "1.2.0"
+        CURRENT_PROJECT_VERSION: "3"
+        ENABLE_HARDENED_RUNTIME: true
+        CODE_SIGN_ENTITLEMENTS: Resources/MikaGridMAS.entitlements
+        # Fuer die Einreichung setzt scripts/release.sh Identitaet und Profil (AK-28).
+        CODE_SIGN_STYLE: Automatic
+    dependencies:
+      - target: MikaGridCore
+        embed: true
+      - sdk: Carbon.framework
+      - sdk: ApplicationServices.framework
+
+  # ---------------------------------------------------------------------------
+  # Tests hängen an der Bibliothek, nicht am ausführbaren Ziel (AK-04).
+  # ---------------------------------------------------------------------------
+  MikaGridTests:
+    type: bundle.unit-test
+    platform: macOS
+    deploymentTarget: "14.0"
+    sources:
+      - path: Tests/MikaGridTests
+    settings:
+      base:
+        SWIFT_VERSION: "6.0"
+        GENERATE_INFOPLIST_FILE: true
+    dependencies:
+      - target: MikaGridCore
+
+schemes:
+  MikaGrid (Direct):
+    build:
+      targets:
+        MikaGrid (Direct): all
+        MikaGridTests: [test]
+    test:
+      targets:
+        - MikaGridTests
+    run:
+      config: Debug
+    archive:
+      config: Release
+
+  MikaGrid (App Store):
+    build:
+      targets:
+        MikaGrid (App Store): all
+    run:
+      config: Debug
+    archive:
+      config: Release

@@ -1,6 +1,14 @@
 #!/bin/bash
 # build.sh — Compile, assemble and sign the Mika+Grid app bundle.
 #
+# Since feature 01 the bundle comes from `xcodebuild`, not from `swift build` plus a
+# hand-assembled bundle: archiving for App Store Connect needs an Xcode project, and one
+# build path for both targets beats two that drift apart. `project.yml` is the source of
+# truth; `MikaGrid.xcodeproj` is generated and git-ignored.
+#
+# What did NOT change: this script still produces build/Mika+Grid.app, still signs
+# inside-out without --deep, and still falls back to an ad-hoc signature.
+#
 # Signing identity:
 #   Set SIGN_IDENTITY to a "Developer ID Application: …" identity to produce a bundle that
 #   Gatekeeper accepts. Without it the script falls back to an ad-hoc signature, which is
@@ -11,6 +19,11 @@ PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 BUILD_DIR="$PROJECT_DIR/build"
 APP_NAME="Mika+Grid"
 APP_BUNDLE="$BUILD_DIR/$APP_NAME.app"
+SCHEME="MikaGrid (Direct)"
+# Separate derived data per target: both app targets produce Mika+Grid.app, and in a shared
+# products directory the App Store bundle inherits Sparkle.framework from this one — exactly
+# what AK-02 rules out.
+DERIVED="$BUILD_DIR/xcode-direct"
 
 CLEAN=false
 UNIVERSAL=false
@@ -39,59 +52,69 @@ else
 fi
 
 if [ "$CLEAN" = true ]; then
-    echo "==> Cleaning .build/ directory..."
-    rm -rf "$PROJECT_DIR/.build"
+    echo "==> Cleaning build directories..."
+    rm -rf "$PROJECT_DIR/.build" "$DERIVED"
 fi
 
-echo "==> Building MikaGrid..."
 cd "$PROJECT_DIR"
 
-BUILD_FLAGS=(-c release)
+command -v xcodegen >/dev/null || {
+    echo "ERROR: xcodegen not found. Install it with 'brew install xcodegen'." >&2
+    echo "       project.yml is the source of truth for both build targets." >&2
+    exit 1
+}
+
+echo "==> Generating Xcode project from project.yml..."
+xcodegen generate --quiet
+
+echo "==> Building $SCHEME..."
+XCODE_FLAGS=(
+    -project "MikaGrid.xcodeproj"
+    -scheme "$SCHEME"
+    -configuration Release
+    -derivedDataPath "$DERIVED"
+    -destination 'platform=macOS'
+    # This script signs the bundle itself, inside-out and without --deep. Letting Xcode
+    # sign first would only be overwritten below.
+    CODE_SIGNING_ALLOWED=NO
+)
 if [ "$UNIVERSAL" = true ]; then
-    BUILD_FLAGS+=(--arch arm64 --arch x86_64)
+    XCODE_FLAGS+=(ARCHS="arm64 x86_64" ONLY_ACTIVE_ARCH=NO)
     echo "    (universal binary: arm64 + x86_64)"
 fi
 
-swift build "${BUILD_FLAGS[@]}" 2>&1
-EXECUTABLE=$(swift build "${BUILD_FLAGS[@]}" --show-bin-path)/MikaGrid
+xcodebuild "${XCODE_FLAGS[@]}" build 2>&1 | tail -5
 
-if [ ! -f "$EXECUTABLE" ]; then
-    echo "ERROR: build produced no executable at $EXECUTABLE" >&2
+BUILT_APP="$DERIVED/Build/Products/Release/$APP_NAME.app"
+if [ ! -d "$BUILT_APP" ]; then
+    echo "ERROR: xcodebuild produced no bundle at $BUILT_APP" >&2
     exit 1
 fi
 
-echo "==> Assembling app bundle..."
+echo "==> Staging bundle to $APP_BUNDLE..."
+mkdir -p "$BUILD_DIR"
 rm -rf "$APP_BUNDLE"
-mkdir -p "$APP_BUNDLE/Contents/MacOS"
-mkdir -p "$APP_BUNDLE/Contents/Resources"
+cp -R "$BUILT_APP" "$APP_BUNDLE"
 
-cp "$EXECUTABLE" "$APP_BUNDLE/Contents/MacOS/MikaGrid"
-cp "$PROJECT_DIR/Resources/Info.plist" "$APP_BUNDLE/Contents/Info.plist"
-
-if [ -f "$PROJECT_DIR/Resources/AppIcon.icns" ]; then
-    cp "$PROJECT_DIR/Resources/AppIcon.icns" "$APP_BUNDLE/Contents/Resources/AppIcon.icns"
-else
-    echo "WARNING: Resources/AppIcon.icns missing — bundle gets the generic icon" >&2
-fi
-
-# --- Sparkle -----------------------------------------------------------------------------
+# --- Sanity checks -----------------------------------------------------------------------
 # A missing framework used to be skipped silently, producing a bundle that cannot update and
 # crashes on launch. It is a hard error now.
-SPARKLE_FW=$(find "$PROJECT_DIR/.build/artifacts" -path "*/macos-arm64_x86_64/Sparkle.framework" -print -quit 2>/dev/null || true)
-if [ -z "$SPARKLE_FW" ]; then
-    SPARKLE_FW=$(find "$PROJECT_DIR/.build/artifacts" -name "Sparkle.framework" -print -quit 2>/dev/null || true)
-fi
-if [ -z "$SPARKLE_FW" ]; then
-    echo "ERROR: Sparkle.framework not found under .build/artifacts." >&2
-    echo "       Run 'swift package resolve' first. Shipping without it would produce" >&2
-    echo "       a bundle that cannot auto-update and crashes at launch." >&2
+SPARKLE_DIR="$APP_BUNDLE/Contents/Frameworks/Sparkle.framework"
+if [ ! -d "$SPARKLE_DIR" ]; then
+    echo "ERROR: Sparkle.framework missing from the built bundle." >&2
+    echo "       Shipping without it would produce a bundle that cannot auto-update" >&2
+    echo "       and crashes at launch." >&2
     exit 1
 fi
-
-echo "==> Embedding Sparkle.framework..."
-mkdir -p "$APP_BUNDLE/Contents/Frameworks"
-cp -R "$SPARKLE_FW" "$APP_BUNDLE/Contents/Frameworks/"
-install_name_tool -add_rpath "@executable_path/../Frameworks" "$APP_BUNDLE/Contents/MacOS/MikaGrid"
+CORE_FW="$APP_BUNDLE/Contents/Frameworks/MikaGridCore.framework"
+if [ ! -d "$CORE_FW" ]; then
+    echo "ERROR: MikaGridCore.framework missing from the built bundle." >&2
+    exit 1
+fi
+if [ ! -f "$APP_BUNDLE/Contents/Resources/AppIcon.icns" ]; then
+    cp "$PROJECT_DIR/Resources/AppIcon.icns" "$APP_BUNDLE/Contents/Resources/AppIcon.icns" 2>/dev/null \
+        || echo "WARNING: Resources/AppIcon.icns missing — bundle gets the generic icon" >&2
+fi
 
 # --- Signing -----------------------------------------------------------------------------
 # Inside-out, and WITHOUT --deep on the outer call.
@@ -100,13 +123,12 @@ install_name_tool -add_rpath "@executable_path/../Frameworks" "$APP_BUNDLE/Conte
 # undid all of the careful per-component signing below and imprinted the app's entitlements
 # — including disable-library-validation — onto Sparkle's XPC services, which ship with none.
 # Apple documents --deep as a verification aid, not a signing mode.
-echo "==> Signing nested Sparkle components (inside-out)..."
-SPARKLE_DIR="$APP_BUNDLE/Contents/Frameworks/Sparkle.framework"
-sign_component() {
-    codesign --force --sign "$SIGN_IDENTITY" --options runtime --timestamp"${TS_SUFFIX:-}" "$1"
-}
 [ "$SIGN_IDENTITY" = "-" ] && TS_SUFFIX="=none" || TS_SUFFIX=""
+sign_component() {
+    codesign --force --sign "$SIGN_IDENTITY" --options runtime --timestamp"${TS_SUFFIX}" "$1"
+}
 
+echo "==> Signing nested Sparkle components (inside-out)..."
 for xpc in "$SPARKLE_DIR"/Versions/B/XPCServices/*.xpc; do
     [ -d "$xpc" ] && sign_component "$xpc"
 done
@@ -117,8 +139,12 @@ done
 sign_component "$SPARKLE_DIR/Versions/B/Sparkle"
 sign_component "$SPARKLE_DIR"
 
+echo "==> Signing MikaGridCore.framework..."
+sign_component "$CORE_FW/Versions/A"
+sign_component "$CORE_FW"
+
 # Ad-hoc builds still need library validation disabled: without a shared team identifier the
-# app cannot load the embedded Sparkle.framework. Developer ID builds do not — keeping the
+# app cannot load the embedded frameworks. Developer ID builds do not — keeping the
 # entitlement there would weaken the hardened runtime for no reason.
 # The source file is never modified: PlistBuddy rewrites a plist wholesale and drops its
 # comments, so editing it in place would silently delete the explanation of why
