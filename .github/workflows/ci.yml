@@ -20,6 +20,12 @@ jobs:
       - name: Show toolchain
         run: swift --version
 
+      # Seit Feature 01 ist project.yml die Wahrheit über beide Bauziele, und
+      # scripts/build.sh erzeugt daraus das Xcode-Projekt. Ohne XcodeGen bricht der
+      # Bundle-Schritt ab — auf dem Runner ist es nicht vorinstalliert.
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
       - name: Build
         run: swift build -c release
 
@@ -31,6 +37,30 @@ jobs:
 
       - name: Verify the signature
         run: codesign --verify --deep --strict --verbose=2 "build/Mika+Grid.app"
+
+      # Die zweite Fassung baut sonst nirgends automatisch — und sie ist der Grund für
+      # das ganze Feature. Getrennter Ableitungsordner: Beide Ziele erzeugen
+      # Mika+Grid.app und würden einander im gemeinsamen Produktordner überschreiben.
+      - name: Build the App Store target
+        run: |
+          xcodegen generate
+          xcodebuild -project MikaGrid.xcodeproj \
+                     -scheme "MikaGrid (App Store)" \
+                     -derivedDataPath build/xcode-mas \
+                     -destination 'platform=macOS' \
+                     CODE_SIGNING_ALLOWED=NO build
+
+      # AK-02: Die Store-Fassung darf Sparkle nicht mitliefern. Das ist der Fehler, der
+      # entsteht, wenn beide Ziele denselben Produktordner benutzen — geprüft statt
+      # angenommen.
+      - name: The App Store build ships no Sparkle
+        run: |
+          APP="build/xcode-mas/Build/Products/Debug/Mika+Grid.app"
+          if [ -d "$APP/Contents/Frameworks/Sparkle.framework" ]; then
+            echo "ERROR: the App Store build contains Sparkle.framework (AK-02)" >&2
+            exit 1
+          fi
+          echo "OK — Frameworks: $(ls "$APP/Contents/Frameworks/" | tr '\n' ' ')"
 
   web:
     name: Website build
