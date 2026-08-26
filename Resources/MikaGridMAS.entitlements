@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Mika+Grid — Entitlements der App-Store-Fassung (Feature 01, AK-03/AK-25/AK-27).
+
+  Die Sandbox ist an: Pflicht für jede Neueinreichung. Fenster bewegt diese Fassung
+  deshalb nicht selbst über die Accessibility-API, sondern lässt Apples Kurzbefehle es
+  tun — angesprochen über Apple Events.
+
+  WARUM scripting-targets UND NICHT temporary-exception.apple-events:
+
+  design.md sieht `com.apple.security.temporary-exception.apple-events` vor, mit der
+  Begründung, Shortcuts biete keine Zugriffsgruppen. Das ist widerlegt. Das
+  Skripting-Wörterbuch von „Shortcuts Events"
+  (/System/Library/CoreServices/Shortcuts Events.app/Contents/Resources/Shortcuts.sdef)
+  führt aus:
+
+      <access-group identifier="com.apple.shortcuts.run" access="r"/>
+      <access-group identifier="com.apple.shortcuts.organize" access="rw"/>
+
+  Genau diese Gruppe braucht die App — nur „ausführen", nicht „organisieren". Der
+  Machbarkeitsversuch T01 hat mit exakt diesem Satz erfolgreich Fenster bewegt, ohne dass
+  ein Fenster der Kurzbefehle-App sichtbar wurde
+  (features/01-app-store-vertrieb/machbarkeit.md).
+
+  Das ist der von Apple empfohlene Weg: Die temporäre Ausnahme bezeichnet Apple selbst als
+  vorübergehend und rät ab, sobald die Ziel-App Zugriffsgruppen anbietet
+  (developer.apple.com/library/archive/qa/qa1888). Sie zu vermeiden senkt das größte
+  Risiko dieses Features — die Ablehnung durch die Prüfung.
+
+  Ziel ist `com.apple.shortcuts.events`, NICHT `com.apple.shortcuts`: Nur der UI-lose
+  Ereignisdienst führt Kurzbefehle aus, ohne ein Fenster zu öffnen (AK-11).
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>com.apple.security.app-sandbox</key>
+    <true/>
+
+    <key>com.apple.security.automation.apple-events</key>
+    <true/>
+
+    <key>com.apple.security.scripting-targets</key>
+    <dict>
+        <key>com.apple.shortcuts.events</key>
+        <array>
+            <string>com.apple.shortcuts.run</string>
+        </array>
+    </dict>
+</dict>
+</plist>

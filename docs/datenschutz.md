@@ -39,6 +39,14 @@ Arbeitsspeicher, weil ein Fenstertitel einen Dokumentnamen oder eine besuchte We
 enthalten kann. Der Schlüssel ist inzwischen die Fensternummer des Systems — eine reine
 Zahl ohne jeden Aussagewert.
 
+**Die App-Store-Fassung (seit Feature 01)** bewegt Fenster nicht selbst, sondern übergibt
+Aktion und Zielrahmen an Apples Kurzbefehle — fünf Zahlen und einen Zufallswert, sonst
+nichts. Kein Anwendungsname, kein Fenstertitel: Der mitgelieferte Kurzbefehl arbeitet auf
+dem vordersten Fenster und braucht keine Angabe, welches gemeint ist. Die Werte verlassen
+das Gerät nicht — Empfängerin ist eine App des Betriebssystems auf demselben Rechner, es
+entsteht kein Netzwerkverkehr und nichts wird gespeichert. Kurzbefehle ist deshalb kein
+Auftragsverarbeiter.
+
 Die Positionshistorie selbst lebt ausschließlich im Arbeitsspeicher, ist auf 100 Einträge
 begrenzt und beim Beenden der App verschwunden.
 

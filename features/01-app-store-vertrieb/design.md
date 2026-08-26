@@ -28,11 +28,13 @@ Stelle treten die beiden Bauziele und die Wege, auf denen sie angesprochen werde
 | Ziel | Bundle-Bezeichner | Sandbox | Fenster bewegt | Mindestsystem | Updates |
 |---|---|---|---|---|---|
 | **MikaGrid (Direct)** | `lu.daumedia.mikagrid` | nein | selbst, über die Accessibility-API | macOS 14 | Sparkle |
-| **MikaGrid (App Store)** | `lu.daumedia.mikagrid.mas` | ja | über Shortcuts | macOS 15 | App Store |
+| **MikaGrid (App Store)** | `lu.daumedia.mikagrid` ⚠ | ja | über Shortcuts | macOS 15 | App Store |
 
-Getrennte Bezeichner, weil ein Nutzer beide installieren kann und sie sonst einander
-überschreiben, Einstellungen teilen und sich beim Anmeldeobjekt in die Quere kommen
-(löst OF-04 der Spezifikation).
+⚠ **Überholt.** Dieser Entwurf sah getrennte Bezeichner vor, weil ein Nutzer sonst beide
+Installationen nicht nebeneinander betreiben kann. **Der Betreiber hat am 2026-08-26 anders
+entschieden:** eine Kennung für beide Fassungen, weil es in App Store Connect nur
+`lu.daumedia.mikagrid` gibt. Die im Absatz genannten Folgen treten damit ein und sind
+bewusst in Kauf genommen — siehe OF-04 und AK-22 in `spec.md`.
 
 | Einstieg | Gilt für | Wirkung |
 |---|---|---|

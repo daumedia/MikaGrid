@@ -14,7 +14,7 @@ Features, die gegen eine Anforderung entstehen — mit Spec **vor** dem Code.
 
 | ID | Feature | Prio | Status | Abhängig von | Zuletzt |
 |---|---|---|---|---|---|
-| 01 | App-Store-Vertrieb | P1 | tasked | B01, B03, B04, B06, B09 | 2026-08-25 |
+| 01 | App-Store-Vertrieb | P1 | approved | B01, B03, B04, B06, B09 | 2026-08-26 |
 
 ### Bestand
 

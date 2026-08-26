@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Info.plist der App-Store-Fassung (Feature 01).
+
+  Unterschiede zur Direktfassung (Resources/Info.plist):
+  - **derselbe Bundle-Bezeichner wie die Direktfassung** (`lu.daumedia.mikagrid`).
+    Entschieden vom Betreiber am 2026-08-26: In App Store Connect gibt es nur diese eine
+    Kennung. Folge: Beide Fassungen sind NICHT nebeneinander installierbar — sie teilen
+    Einstellungen und streiten um das Anmeldeobjekt. AK-22 ist damit nicht mehr erfüllbar,
+    solange beide Wege gleichzeitig laufen. Siehe OF-04 in spec.md
+  - Mindestsystem macOS 15 — die Fensteraktionen von Kurzbefehle setzen es voraus (AK-19)
+  - KEINE Sparkle-Schlüssel: Updates kommen aus dem Store (AK-02, AK-22)
+  - `NSAppleEventsUsageDescription` und das URL-Schema für die Antwort des Kurzbefehls
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDisplayName</key>
+	<string>Mika+Grid</string>
+	<key>CFBundleExecutable</key>
+	<string>MikaGrid</string>
+	<key>CFBundleIconFile</key>
+	<string>AppIcon</string>
+	<key>CFBundleIdentifier</key>
+	<string>lu.daumedia.mikagrid</string>
+	<key>CFBundleName</key>
+	<string>Mika+Grid</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>1.2.0</string>
+	<key>CFBundleVersion</key>
+	<string>3</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>15.0</string>
+	<key>LSUIElement</key>
+	<true/>
+	<key>NSHighResolutionCapable</key>
+	<true/>
+	<!-- Begründung für den Automatisierungs-Dialog (AK-15). Ohne diesen Schlüssel beendet
+	     macOS die App beim ersten Apple Event. -->
+	<key>NSAppleEventsUsageDescription</key>
+	<string>Mika+Grid lässt Kurzbefehle Fenster verschieben. Ohne diese Erlaubnis kann die App keine Fenster anordnen.</string>
+	<!-- Nimmt ausschließlich die Antwort des Companion-Shortcuts entgegen. Jede Antwort
+	     ohne gültigen, unverbrauchten `nonce` wird verworfen — das Schema nimmt keine
+	     Befehle an (T14, Zugriffsregeln in design.md). -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>lu.daumedia.mikagrid</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>mikagrid-mas</string>
+			</array>
+		</dict>
+	</array>
+</dict>
+</plist>

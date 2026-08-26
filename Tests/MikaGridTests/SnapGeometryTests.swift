@@ -7,7 +7,7 @@
 
 import Testing
 import Foundation
-@testable import MikaGrid
+@testable import MikaGridCore
 
 @MainActor
 struct SnapGeometryTests {

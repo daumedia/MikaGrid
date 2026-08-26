@@ -39,11 +39,21 @@ export default function Privacy() {
             </p>
             <p>
               Window <em>titles</em> are not read at all. Until version 1.1.1 the
-              undo history was keyed by process ID and window title, which meant
-              titles — a document name, a website you visited — sat in memory. The
-              key is now the system&apos;s window number: a plain integer that says
-              nothing about you. The history itself lives in memory only, is capped
-              at 100 entries and is gone when the app quits.
+              undo history was keyed by
+              process ID and window title, which meant titles — a document name, a
+              website you visited — sat in memory. The key is now the system&apos;s
+              window number: a plain integer that says nothing about you. The
+              history itself lives in memory only, is capped at 100 entries and is
+              gone when the app quits.
+            </p>
+            <p>
+              The <strong className="text-teal-surface">App Store version works
+              differently</strong>. It does not move windows itself — it asks
+              Apple&apos;s Shortcuts app to do it, and passes the action and the
+              target frame: five numbers and a random value, nothing else. No
+              application name, no window title. The information never leaves your
+              Mac: the recipient is a system app on the same machine, no network
+              request is made and nothing is stored.
             </p>
           </LegalSection>
 

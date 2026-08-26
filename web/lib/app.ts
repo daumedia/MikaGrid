@@ -9,6 +9,10 @@ export const APP = {
   version: "1.2.0",
   minMacOS: "14.0",
   minMacOSName: "Sonoma",
+  // Die App-Store-Fassung bewegt Fenster über Apples Kurzbefehle; deren Fensteraktionen
+  // setzen macOS 15 voraus. Wird von scripts/check-web-sync.mjs gegen Info-MAS.plist geprüft.
+  minMacOSStore: "15.0",
+  minMacOSStoreName: "Sequoia",
   arch: "Universal (Apple Silicon + Intel)",
   license: "MIT",
   repo: "https://github.com/daumedia/MikaGrid",

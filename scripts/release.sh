@@ -8,11 +8,22 @@
 #
 # Usage:
 #   bash scripts/release.sh --check          verify only, change nothing
-#   bash scripts/release.sh                  full release
+#   bash scripts/release.sh                  full release (direct / DMG / Sparkle)
+#   bash scripts/release.sh --store          archive and upload the App Store build
+#
+# The two distribution routes are deliberately separate commands. They share the source
+# tree and nothing else: different bundle id, different minimum system, different update
+# mechanism. Running one must never touch the other (AK-22).
 #
 # Environment:
 #   SIGN_IDENTITY      Developer ID Application identity (auto-detected)
 #   NOTARY_PROFILE     keychain profile for notarytool; skip notarisation if unset
+#   ASC_KEY_ID         App Store Connect API key id            (--store only)
+#   ASC_ISSUER_ID      App Store Connect issuer id             (--store only)
+#   ASC_KEY_PATH       path to the .p8 private key             (--store only)
+#
+# No credential is ever read from the repository (AK-28). The .p8 key belongs outside the
+# working tree — ~/.appstoreconnect/private_keys/ is where Xcode looks for it.
 set -euo pipefail
 
 PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
@@ -23,8 +34,12 @@ APPCAST="$PROJECT_DIR/appcast.xml"
 FEED_BRANCH="${FEED_BRANCH:-master}"
 
 CHECK_ONLY=false
+STORE=false
 for arg in "$@"; do
-    case "$arg" in --check) CHECK_ONLY=true ;; esac
+    case "$arg" in
+        --check) CHECK_ONLY=true ;;
+        --store) STORE=true ;;
+    esac
 done
 
 fail() { echo "ERROR: $*" >&2; exit 1; }
@@ -69,6 +84,102 @@ fi
 if [ "$CHECK_ONLY" = true ]; then
     echo ""
     echo "==> Check passed for v$VERSION"
+    exit 0
+fi
+
+# --- 1b · App Store route -----------------------------------------------------------------
+# Separate from everything below: the store build is sandboxed, carries no Sparkle and has
+# its own bundle id. It never touches build/Mika+Grid.app or the appcast.
+if [ "$STORE" = true ]; then
+    MAS_PLIST="$PROJECT_DIR/Resources/Info-MAS.plist"
+    MAS_VERSION=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" "$MAS_PLIST")
+    MAS_BUILD=$(/usr/libexec/PlistBuddy -c "Print :CFBundleVersion" "$MAS_PLIST")
+    [ "$MAS_VERSION" = "$VERSION" ] \
+        || fail "Info-MAS.plist says $MAS_VERSION, Info.plist says $VERSION — keep both in step"
+    ok "Info-MAS.plist agrees: $MAS_VERSION (build $MAS_BUILD)"
+
+    # The store needs a different certificate than direct distribution. Saying so up front
+    # beats a signing failure twenty minutes into an archive.
+    security find-identity -v -p codesigning 2>/dev/null \
+        | grep -q "3rd Party Mac Developer Application\|Apple Distribution" \
+        || fail "no '3rd Party Mac Developer Application' or 'Apple Distribution' identity found.
+       A 'Developer ID Application' certificate does NOT work for the App Store.
+       Create the certificate and the app id lu.daumedia.mikagrid in App Store Connect."
+    ok "store signing identity present"
+
+    command -v xcodegen >/dev/null || fail "xcodegen not found — 'brew install xcodegen'"
+    echo ""
+    echo "==> Generating Xcode project..."
+    (cd "$PROJECT_DIR" && xcodegen generate --quiet)
+
+    ARCHIVE="$PROJECT_DIR/build/MikaGrid-MAS.xcarchive"
+    EXPORT_DIR="$PROJECT_DIR/build/mas-export"
+    rm -rf "$ARCHIVE" "$EXPORT_DIR"
+
+    echo "==> Archiving the App Store target..."
+    xcodebuild archive \
+        -project "$PROJECT_DIR/MikaGrid.xcodeproj" \
+        -scheme "MikaGrid (App Store)" \
+        -configuration Release \
+        -derivedDataPath "$PROJECT_DIR/build/xcode-mas" \
+        -archivePath "$ARCHIVE" \
+        -destination 'generic/platform=macOS' \
+        | tail -5
+    [ -d "$ARCHIVE" ] || fail "archiving produced no .xcarchive"
+    ok "archived"
+
+    # Sparkle must not be in there. Checked rather than assumed — the two targets used to
+    # share a products directory, and the store bundle silently inherited it (AK-02).
+    if find "$ARCHIVE/Products" -name "Sparkle.framework" -print -quit | grep -q .; then
+        fail "the archive contains Sparkle.framework — the store build must not ship it (AK-02)"
+    fi
+    ok "no Sparkle in the archive (AK-02)"
+
+    EXPORT_OPTIONS="$PROJECT_DIR/build/ExportOptions-MAS.plist"
+    cat > "$EXPORT_OPTIONS" <<PLIST
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>method</key><string>app-store-connect</string>
+    <key>teamID</key><string>CWJM4J4HFN</string>
+    <key>destination</key><string>upload</string>
+    <key>uploadSymbols</key><true/>
+</dict>
+</plist>
+PLIST
+
+    EXPORT_FLAGS=(
+        -exportArchive
+        -archivePath "$ARCHIVE"
+        -exportPath "$EXPORT_DIR"
+        -exportOptionsPlist "$EXPORT_OPTIONS"
+    )
+    # Credentials come from the keychain or from a key outside the tree — never from here.
+    if [ -n "${ASC_KEY_ID:-}" ] && [ -n "${ASC_ISSUER_ID:-}" ] && [ -n "${ASC_KEY_PATH:-}" ]; then
+        EXPORT_FLAGS+=(
+            -authenticationKeyID "$ASC_KEY_ID"
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID"
+            -authenticationKeyPath "$ASC_KEY_PATH"
+        )
+        echo "==> Exporting and uploading to App Store Connect..."
+    else
+        echo "  ! ASC_KEY_ID / ASC_ISSUER_ID / ASC_KEY_PATH not set."
+        echo "    Exporting only — Xcode will ask for credentials, or upload by hand."
+        echo "    Set up once in App Store Connect → Users and Access → Integrations."
+    fi
+
+    xcodebuild "${EXPORT_FLAGS[@]}" | tail -5
+    ok "exported to $EXPORT_DIR"
+
+    echo ""
+    echo "==> App Store build v$VERSION (build $MAS_BUILD) prepared"
+    echo "    Archive: $ARCHIVE"
+    echo ""
+    echo "    Remaining manual steps:"
+    echo "      1. App Store Connect → check the build appeared under TestFlight"
+    echo "      2. Store listing must name the companion shortcut BEFORE download (AK-20)"
+    echo "      3. Privacy details: 'Data Not Collected' (AK-21)"
     exit 0
 fi
 
