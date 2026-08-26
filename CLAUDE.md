@@ -225,6 +225,12 @@ bash scripts/make-companion-shortcut.sh   # Companion-Kurzbefehl neu bauen und s
 
 Der Store-Zweig braucht **`3rd Party Mac Developer Application`** oder
 `Apple Distribution` — eine `Developer ID`-Identität genügt dafür **nicht**.
+
+**Store-Pflichtschlüssel in `Resources/Info-MAS.plist`:** `LSApplicationCategoryType`
+(sonst weist der Upload mit Fehler **90242** ab — einmal passiert) und
+`ITSAppUsesNonExemptEncryption` (erspart die Rückfrage zur Exportkonformität bei jedem
+Upload). `release.sh --store` prüft beide, bevor es archiviert. Die Kategorie muss zu der
+in App Store Connect gewählten passen.
 Notarisierung läuft, sobald `NOTARY_PROFILE` ein hinterlegtes `notarytool`-Profil nennt.
 
 ## Create DMG Installer
