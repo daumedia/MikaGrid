@@ -1,0 +1,32 @@
+Mika+Grid puts a window where you want it with one keystroke. No dragging, no aiming at a window edge, no extra icon in the Dock.
+
+Press Control-Option-Left and the front window takes the left half of the screen. Press Control-Option-Return and it fills the display. Ten layouts, one modifier combo, learned in an afternoon.
+
+BEFORE YOU DOWNLOAD
+
+This version moves windows through Apple's Shortcuts app — that is what keeps it inside the App Store rules. The app ships the shortcut it needs and adds it during setup with one click, but the setup step is not optional.
+
+VISUAL SNAP GRID
+Click the menu bar icon and pick a zone. Every button previews the resulting layout on a miniature screen, so you never have to remember which key does what.
+
+TEN SNAP ACTIONS
+Left, right, top and bottom half. All four quarters. Maximize. And a centered two-thirds layout for a single window you actually want to work in.
+
+EVERY SHORTCUT IS YOURS
+The default bindings all sit on Control-Option. Any of them can be re-recorded in Preferences, which flags conflicts as you type and restores the defaults on request.
+
+MULTI-MONITOR
+The window snaps to the display its center sits on, not to whichever screen the system thinks is active.
+
+MENU BAR ONLY
+No Dock icon, no window of its own, no background service. It sits in the menu bar and stays out of the way.
+
+
+TWO THINGS TO KNOW
+
+Nothing leaves your Mac. No account, no analytics, no telemetry, no ads. This version makes not a single network request — not even for updates. What travels to the Shortcuts app is a rectangle: five numbers and a random value. Never a window title, never an application name.
+
+Restoring a previous window position is not available in this version. Shortcuts reports no window frames, so there is nothing to remember.
+
+
+Free and open source under the MIT licence. Requires macOS 15 Sequoia or later.

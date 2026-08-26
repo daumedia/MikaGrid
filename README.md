@@ -199,6 +199,13 @@ Sources/
 design system, app shell and privacy. `features/` holds a spec and a design document per
 feature, each listing what was found and what was fixed.
 
+`AppStore/` holds everything App Store Connect asks for: the listing texts in Fastlane
+layout, the screenshots and the scripts that regenerate them, the answers to the privacy
+and age-rating questionnaires with their evidence in the code, and
+[a checklist](AppStore/CHECKLISTE.md) of the steps that can only be done inside the Apple
+account. `swift test` checks the texts against the character limits and against
+`Info-MAS.plist`.
+
 ## License
 
 [MIT](LICENSE)

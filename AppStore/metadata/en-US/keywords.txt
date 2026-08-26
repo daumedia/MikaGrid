@@ -1,0 +1,1 @@
+window manager,snapping,tiling,layout,hotkeys,productivity,menu bar,resize,arrange,halves

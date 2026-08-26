@@ -35,7 +35,7 @@ Features, die gegen eine Anforderung entstehen — mit Spec **vor** dem Code.
 
 | ID | Umfang | Quellen |
 |---|---|---|
-| 01 | Xcode-Projekt mit zwei Zielen; Store-Ziel sandboxed und über Shortcuts statt Accessibility-API; Onboarding-Schritt für den Companion-Shortcut; Einreichung und Store-Auftritt | *noch nicht gebaut* |
+| 01 | Xcode-Projekt mit zwei Zielen; Store-Ziel sandboxed und über Shortcuts statt Accessibility-API; Onboarding-Schritt für den Companion-Shortcut; Store-Auftritt (Texte, Screenshots, Fragebogen-Antworten) | `project.yml`, `Sources/MikaGridMAS/`, `AppStore/` — die Einreichung selbst steht aus |
 | B01 | Elf Snap-Aktionen, Zielgeometrie je Bildschirm, Bildschirmwahl über den Fenstermittelpunkt, Schreibfolge Größe→Position→Größe mit Rückmessung, Umgang mit `AXEnhancedUserInterface` und AX-Zeitgrenzen | `WindowManager.swift`, `SnapAction.swift` |
 | B02 | Sichern des Rahmens vor dem **ersten** Snap, Wiederherstellen mit ⌃⌥⌫, Schlüssel ist die Fensterreferenz (`CFEqual`), Historie auf 100 Einträge begrenzt | `SnapHistory.swift`, `WindowManager.snapFrontmostWindow` (restore-Zweig) |
 | B03 | Carbon-Registrierung der elf Kürzel, einmalige Handler-Installation, freie Belegung über Recorder, Konflikt- und Sperrlistenprüfung, sichtbare Fehlschläge, Speicherung mit Schemaversion und Auffüllen fehlender Belegungen | `HotkeyManager.swift`, `Preferences/ShortcutsTabView.swift` |
@@ -71,7 +71,8 @@ lösbar sind**.
 | Punkt | Warum offen | Was fehlt |
 |---|---|---|
 | **Notarisierung** (B09/FB-01, B08/FB-08) | Zugangsdaten für App Store Connect gehören nicht ins Repository | Einmalig `xcrun notarytool store-credentials MikaGrid --apple-id <id> --team-id CWJM4J4HFN --password <app-spezifisch>`, danach erledigt `scripts/release.sh` den Rest |
-| **Landingpage veröffentlichen** (B10/FB-02) | Zugriff auf das Vercel-Konto nötig | Das Projekt `daumedia/mikaplus-grid` ist bereits verbunden und baut Vorschauen je Pull Request — es fehlt ein Produktivstand unter einer erreichbaren Adresse. Weicht sie von `APP.siteUrl` ab, ist `web/lib/app.ts` nachzuziehen |
+| **Landingpage veröffentlichen** (B10/FB-02) | Zugriff auf das Vercel-Konto nötig | Das Projekt `daumedia/mikaplus-grid` ist bereits verbunden und baut Vorschauen je Pull Request — es fehlt ein Produktivstand unter `grid.daumedia.lu`. Diese Adresse steht seit dem Store-Paket in `web/lib/app.ts` und in `AppStore/metadata/en-US/*_url.txt`; Apple ruft sie bei der Prüfung auf |
+| **Store-Einreichung** (01/T21b) | Zertifikat und App-Datensatz liegen im Apple-Konto | Ein `3rd Party Mac Developer Application`-Zertifikat fehlt (vorhanden ist nur `Developer ID Application`), ebenso der App-Datensatz und ein App-Store-Connect-Schlüssel. Alles Vorbereitbare liegt in `AppStore/`; abzuarbeiten ist `AppStore/CHECKLISTE.md` |
 
 Ein Developer-ID-Zertifikat ist vorhanden (`Michael Rodrigues, CWJM4J4HFN`), die
 Mitgliedschaft besteht also — bei der Notarisierung fehlt wirklich nur der einmalige

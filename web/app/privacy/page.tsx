@@ -122,6 +122,16 @@ defaults delete lu.daumedia.mikagrid`}
               Accessibility, and under General → Login Items if you enabled it. No
               application is allowed to delete those for you.
             </p>
+            <p>
+              If you used the App Store version, the companion shortcut{" "}
+              <span className="text-teal-surface">
+                “{APP.companionShortcutName}”
+              </span>{" "}
+              stays in your Shortcuts library after the app is gone. Removing the app
+              takes its sandbox container with it, but no application may delete a
+              shortcut you own — open Shortcuts and delete it there. The permission to
+              control Shortcuts is withdrawn under Privacy &amp; Security → Automation.
+            </p>
           </LegalSection>
 
           <LegalSection title="Controller">

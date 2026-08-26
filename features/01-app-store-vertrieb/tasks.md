@@ -135,17 +135,28 @@ Jede Ansicht braucht vier Zustände: leer, ladend, Fehler, gefüllt.
 - [x] **T20** `[P]` · Barrierefreiheit der neuen Oberflächenteile: Beschriftungen und
       Hinweise am Onboarding-Schritt und an der Einstellungszeile, Zustand nicht allein
       über Farbe. Folgt `docs/design-system.md`. — `EC-01`, Muster aus B04
-- [ ] **T21** `[P]` · App Store Connect einrichten: Name „Mika+Grid", Preis kostenlos,
-      Mindestsystem macOS 15, Beschreibung nennt den Companion-Shortcut **vor** dem
-      Download, Datenschutzangaben „keine Daten erhoben". Keine Codeänderung.
+- [x] **T21a** `[P]` · Store-Auftritt im Repository vorbereiten: `AppStore/` nach dem
+      Muster von Mika+FileScope — die neun Metadatentexte, die vier Dokumente
+      (`README`, `APP_STORE_CONNECT`, `ALTERSFREIGABEN`, `CHECKLISTE`), die
+      Screenshot-Werkzeuge und `Tests/MikaGridTests/StoreAssetTests.swift`.
       — `AK-19, AK-20, AK-21`
-      **Nachtrag 2026-08-26:** Die dort gewählte **Kategorie** muss zu
-      `LSApplicationCategoryType` in `Resources/Info-MAS.plist` passen — derzeit
-      `public.app-category.productivity`. Weichen beide voneinander ab, weist App Store
-      Connect das Archiv ab.
-      **NICHT AUSFÜHRBAR 2026-08-25:** Verlangt Zugang zu App Store Connect. Es fehlen die
-      App-Kennung `lu.daumedia.mikagrid.mas` und ein Store-Zertifikat. **AK-19 bis AK-21
-      bleiben offen** — reine Betreiberarbeit, kein Code.
+      **Erledigt 2026-08-26.** Die Texte nennen den Companion-Kurzbefehl in den ersten
+      700 Zeichen der Beschreibung (AK-20, maschinell geprüft), Name und Mindestsystem
+      macOS 15 (AK-19) und tragen die Grundlage für „Data Not Collected" (AK-21) samt
+      Belegen. Was in App Store Connect einzutragen ist, steht in
+      `AppStore/CHECKLISTE.md`.
+- [ ] **T21b** `[P]` · Die vorbereiteten Angaben in App Store Connect eintragen und
+      einreichen. — `AK-19, AK-20, AK-21`
+      **NICHT AUSFÜHRBAR:** Verlangt Zugang zu App Store Connect. Es fehlen der
+      App-Datensatz und ein Store-Zertifikat (`3rd Party Mac Developer Application`;
+      vorhanden ist nur `Developer ID Application`, geprüft am 2026-08-26). **AK-19 bis
+      AK-21 bleiben bis dahin offen** — reine Betreiberarbeit, kein Code.
+      Die **Kategorie** muss zu `LSApplicationCategoryType` in `Resources/Info-MAS.plist`
+      passen — derzeit `public.app-category.productivity`. Weichen beide voneinander ab,
+      weist App Store Connect das Archiv mit Fehler 90242 ab.
+      **Korrektur zum früheren Stand:** Eine Kennung `lu.daumedia.mikagrid.mas` ist
+      **nicht** anzulegen. Seit OF-04 tragen beide Fassungen `lu.daumedia.mikagrid`; in
+      App Store Connect gibt es nur diesen einen Datensatz.
 - [x] **T22** `[P]` · Folgeaufträge aus `spec.md` umsetzen: `docs/prd.md`,
       `docs/datenschutz.md` und `web/app/privacy/page.tsx` um die Fenstertitel-Regel und
       die getrennten Vertriebswege ergänzen. — `AK-23`
@@ -176,9 +187,9 @@ Jede Ansicht braucht vier Zustände: leer, ladend, Fehler, gefüllt.
 | AK-16 | T15, T18 |
 | AK-17 | T11, T17, T18 |
 | AK-18 | T11, T17 |
-| AK-19 | T21, T23 |
-| AK-20 | T21 |
-| AK-21 | T21 |
+| AK-19 | T21a, T21b, T23 |
+| AK-20 | T21a, T21b |
+| AK-21 | T21a, T21b |
 | AK-22 | T02 |
 | AK-23 | T10, T22 |
 | AK-24 | T12 |

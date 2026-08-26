@@ -23,7 +23,16 @@ export const APP = {
   dmgUrl:
     "https://github.com/daumedia/MikaGrid/releases/download/v1.2.0/Mika%2BGrid-v1.2.0.dmg",
   dmgSizeMB: 2.5,
-  siteUrl: "https://mikagrid.vercel.app",
+  siteUrl: "https://grid.daumedia.lu",
+  // Die Store-Fassung führt zehn der elf Aktionen aus: Restore braucht den vorherigen
+  // Fensterrahmen, und den meldet Kurzbefehle nicht zurück. Von check-web-sync.mjs gegen
+  // SnapAction.swift nachgerechnet, damit die Zahl bei einer zwölften Aktion nicht still
+  // falsch wird.
+  storeSnapActions: 10,
+  // Muss zu CompanionShortcutManager.shortcutName passen — geprüft.
+  companionShortcutName: "Mika+Grid Snap",
+  // Leer, solange der App-Datensatz fehlt: Ein toter Store-Link ist schlimmer als keiner.
+  appStoreUrl: "",
   vendor: "Daumedia",
   vendorUrl: "https://daumedia.lu",
 } as const

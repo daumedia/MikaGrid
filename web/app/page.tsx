@@ -2,6 +2,7 @@ import { APP } from "@/lib/app"
 import { Nav } from "@/components/Nav"
 import { Hero } from "@/components/Hero"
 import { Features } from "@/components/Features"
+import { Editions } from "@/components/Editions"
 import { ShortcutList } from "@/components/Shortcuts"
 import { HowItWorks } from "@/components/HowItWorks"
 import { Trust } from "@/components/Trust"
@@ -45,6 +46,7 @@ export default function Home() {
           <ShortcutList />
         </Section>
         <HowItWorks />
+        <Editions />
         <Trust />
         <Faq />
       </main>

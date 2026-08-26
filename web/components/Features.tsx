@@ -4,6 +4,9 @@ type Feature = {
   title: string
   body: string
   icon: React.ReactNode
+  // Gesetzt, wo die App-Store-Fassung nicht mithält. Ohne diese Marke widerspricht die
+  // Seite dem Store-Eintrag, der zehn Aktionen und kein Restore zusagt.
+  directOnly?: boolean
 }
 
 const stroke = {
@@ -30,6 +33,7 @@ const FEATURES: Feature[] = [
   {
     title: "11 snap actions",
     body: "Halves, all four quarters, maximize, and a centered two-thirds layout for focused work — plus restore.",
+    directOnly: true,
     icon: (
       <svg viewBox="0 0 24 24" aria-hidden="true" {...stroke}>
         <rect x="3" y="4" width="18" height="16" rx="2" />
@@ -60,6 +64,7 @@ const FEATURES: Feature[] = [
   },
   {
     title: "Undo any snap",
+    directOnly: true,
     body: "The previous frame is remembered per window. One press of ⌃⌥⌫ puts it back exactly where it was.",
     icon: (
       <svg viewBox="0 0 24 24" aria-hidden="true" {...stroke}>
@@ -70,6 +75,7 @@ const FEATURES: Feature[] = [
   },
   {
     title: "Signed auto-updates",
+    directOnly: true,
     body: "Sparkle checks for new versions and verifies every download with an EdDSA signature. Turn it off any time.",
     icon: (
       <svg viewBox="0 0 24 24" aria-hidden="true" {...stroke}>
@@ -98,6 +104,14 @@ export function Features() {
             <h3 className="font-display text-lg font-semibold tracking-tight text-teal-surface">
               {f.title}
             </h3>
+            {f.directOnly && (
+              <a
+                href="#editions"
+                className="mt-2 inline-block rounded-full border border-line-strong px-2 py-0.5 text-[10px] tracking-wide text-teal-lightest/50 transition-colors hover:text-teal-primary"
+              >
+                direct download only
+              </a>
+            )}
             <p className="mt-2 text-sm leading-relaxed text-teal-lightest/60">
               {f.body}
             </p>

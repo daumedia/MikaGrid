@@ -1,0 +1,8 @@
+First release in the Mac App Store.
+
+• Ten snap layouts on Control-Option: halves, quarters, maximize and a centered two-thirds view
+• Visual grid in the menu bar — every zone previews its layout
+• All shortcuts re-recordable, with conflict detection
+• Snaps to the display the window's center sits on
+• Sets up its companion shortcut in one click during onboarding
+• No Dock icon, no account, no network access

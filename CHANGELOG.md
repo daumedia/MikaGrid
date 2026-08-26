@@ -12,8 +12,11 @@
 - **Narrower entitlement than planned.** The design called for the deprecated
   `temporary-exception.apple-events`; `Shortcuts Events` turned out to publish the access
   group `com.apple.shortcuts.run`, so the store build uses `scripting-targets` instead
-- **Separate bundle ids** (`lu.daumedia.mikagrid` / `.mas`) so both can be installed side
-  by side without sharing preferences or fighting over the login item
+- **One bundle id for both versions** (`lu.daumedia.mikagrid`). An earlier draft gave the
+  store build a `.mas` suffix so both could be installed side by side; App Store Connect
+  holds a single record, so that was dropped (OF-04). The price is that the two versions
+  cannot coexist — they share preferences and the login item, and LaunchServices cannot
+  tell them apart. Harmless while only one channel ships
 - **Build system moved to XcodeGen.** `project.yml` is the source of truth; `.xcodeproj` is
   generated and git-ignored. Archiving for App Store Connect needs an Xcode project
 - **Tests now hang off the library** instead of the executable target — all 45 existing
@@ -24,6 +27,25 @@
   to hand the title to Shortcuts when an app has several windows; that turned out to be
   unnecessary — the companion shortcut works on the frontmost window, so the payload is
   five numbers and a random value
+
+### The store listing itself
+- **`AppStore/` holds everything App Store Connect asks for** — the texts in Fastlane
+  layout (`metadata/en-US/*.txt`), the screenshots, the answers to the privacy and age
+  questionnaires with their evidence in the code, and a checklist of what can only be done
+  inside the Apple account. Same structure as Mika+FileScope
+- **The listing says ten actions, not eleven.** `.restore` returns `.nothingToRestore` in
+  the store version, so promising eleven would be inaccurate metadata. `StoreAssetTests`
+  fails if "eleven" ever appears in a store text
+- **The companion shortcut is named in the description, not the promotional text** — the
+  latter is editable without review and is no place for a required disclosure (AK-20)
+- **New checks in `swift test`**: character limits, screenshot dimensions and alpha
+  channel, that every shot has its own raw capture, that `MikaGridCore` and `MikaGridMAS`
+  contain no networking, and that the listing agrees with `Info-MAS.plist` on name,
+  category, minimum system and bundle id
+- **`scripts/check-web-sync.mjs` now also checks the store texts** against `web/lib/app.ts`
+  and the Swift sources — the count of ten actions is recalculated, not copied
+- **The site gained a "Versions" section** comparing both editions, and the three feature
+  cards that only apply to the direct download are marked as such
 
 ### Known limits of the App Store version
 - **"Restore previous position" is not available.** Shortcuts does not return a window's

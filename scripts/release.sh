@@ -187,10 +187,10 @@ PLIST
     echo "==> App Store build v$VERSION (build $MAS_BUILD) prepared"
     echo "    Archive: $ARCHIVE"
     echo ""
-    echo "    Remaining manual steps:"
-    echo "      1. App Store Connect → check the build appeared under TestFlight"
-    echo "      2. Store listing must name the companion shortcut BEFORE download (AK-20)"
-    echo "      3. Privacy details: 'Data Not Collected' (AK-21)"
+    echo "    Remaining manual steps: AppStore/CHECKLISTE.md"
+    echo "      Texts:       AppStore/metadata/en-US/"
+    echo "      Screenshots: AppStore/screenshots/en-US/mac-2880x1800/ (in numbered order)"
+    echo "      Answers to both questionnaires: AppStore/APP_STORE_CONNECT.md"
     exit 0
 fi
 

@@ -71,13 +71,14 @@ MikaGrid/
 ├── .gitignore
 ├── docs/                            ← SDD-Artefakte (PRD, Datenmodell, Design-System, App-Shell)
 ├── features/                        ← SDD-Feature-Inventar (B01–B10), Specs je Feature
+├── AppStore/                        ← Store-Texte, Screenshots, Fragebogen-Antworten
 ├── build.sh                         → exec scripts/build.sh
 ├── Resources/
 │   ├── Info.plist                   ← Direktziel: LSUIElement=true, Bundle ID
 │   ├── Info-MAS.plist               ← Store-Ziel: macOS 15, URL-Schema, kein Sparkle
 │   ├── MikaGrid.entitlements        ← No sandbox
 │   ├── MikaGridMAS.entitlements     ← Sandbox + scripting-targets
-│   ├── MikaGridSnap.shortcut        ← signierter Companion-Kurzbefehl (mitgeliefert)
+│   ├── Mika+Grid Snap.shortcut      ← Companion-Kurzbefehl (Dateiname = Anzeigename!)
 │   ├── AppIcon.png                  ← 1024x1024 source icon
 │   └── AppIcon.icns                 ← macOS icon set
 ├── Sources/
@@ -213,6 +214,40 @@ gemeinsamen Produktordner überschreiben sie einander, und das Store-Bundle erbt
 vorhandene. Deshalb werden `Info.plist` und die Entitlements nur über `INFOPLIST_FILE`
 bzw. `CODE_SIGN_ENTITLEMENTS` referenziert. Einmal hat es die Direkt-Entitlements samt
 ihrer Begründung gelöscht.
+
+## App-Store-Paket
+
+- `AppStore/` — Texte, Screenshots und die Werkzeuge, um beides neu zu erzeugen. Aufbau
+  nach Fastlane-Konvention (`metadata/<locale>/*.txt`), damit ein späterer Wechsel auf
+  `fastlane deliver` ohne Umbau geht. Übernommen aus Mika+FileScope
+- **`en-US` ist die einzige Lokalisierung** — die Oberfläche der App ist englisch, eine
+  deutsche Headline darüber läse sich wie ein Fehler
+- **Die Store-Texte sagen „zehn Aktionen", nicht elf.** `ShortcutsWindowSnapper`
+  beantwortet `.restore` mit `.nothingToRestore`; README und Website zählen elf, das gilt
+  für den Direktvertrieb. `swift test --filter StoreAssetTests` schlägt fehl, sobald
+  „eleven" in einem Store-Text steht
+- **Der Companion-Kurzbefehl gehört in die Beschreibung, nicht in den Werbetext** (AK-20:
+  Hinweis *vor* dem Download). Der Werbetext ist ohne Review änderbar und trägt deshalb
+  keine Pflichtangabe. Geprüft wird, dass „Shortcuts" in den ersten 700 Zeichen vorkommt
+- **„Rectangle" darf nicht in die Store-Texte.** README und `web/app/layout.tsx` führen
+  den Namen als SEO-Begriff — auf der eigenen Website unbedenklich, im Store ein
+  Ablehnungsgrund. Der Test verbietet ihn samt vier weiteren Fremdprodukten
+- `AppStore/tools/capture.sh` nimmt die fünf Rohaufnahmen auf, `swift
+  AppStore/tools/compose.swift` setzt daraus die fertigen 2880×1800-Bilder.
+  **Aufgenommen wird die Store-Fassung** — die Fußzeile des Popovers zeigt „Updates" nur
+  bei vorhandenem Update-Kanal, ein Bild der Direktfassung zeigte im Store also eine
+  Schaltfläche, die es dort nicht gibt
+- **Jede Rohaufnahme ist ein Bildschirmausschnitt, kein Fenster.** Anders als bei
+  Mika+FileScope: Diese App hat kein Hauptfenster, und Fensterverwaltung ist an einem
+  einzelnen Fenster nicht zu zeigen. Das Popover (280 pt) wird über das
+  `highlight`-Layout herausvergrößert
+- **Das Popover schließt bei jedem Aktivwerden einer anderen App.** Die Reihenfolge
+  „erst snappen, dann Popover, dann aufnehmen" in `capture.sh` ist deshalb nicht
+  verhandelbar
+- `swift test --filter StoreAssetTests` prüft Zeichenlimits, Bildmaße, Alphakanal,
+  Netzfreiheit von `MikaGridCore`/`MikaGridMAS` und den Abgleich mit `Info-MAS.plist`
+- `AppStore/CHECKLISTE.md` listet, was nur im Apple-Konto zu erledigen ist — und zwei
+  Produktentscheidungen, die vor der Einreichung fallen sollten (BF-08, BF-09)
 
 ## Release
 ```bash

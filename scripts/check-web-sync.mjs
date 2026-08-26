@@ -88,6 +88,44 @@ for (const [id, label] of [...actionsTs.matchAll(/id:\s*"(\w+)",\s*label:\s*"([^
 }
 if (swiftCases.length && !failures) console.log("  ✓ snap action labels match")
 
+// --- AppStore/metadata gegen web/lib und die Swift-Quellen -----------------------------
+//
+// Die Store-Texte wiederholen Werte, die anderswo schon stehen: die Adresse der Website,
+// den App-Namen, die Zahl der Aktionen, den Namen des Companion-Kurzbefehls. Ohne diese
+// Prüfung wird „ten of the eleven actions" still falsch, sobald jemand eine zwölfte
+// Aktion baut — und ein falscher Store-Eintrag lässt sich nicht ohne Review korrigieren.
+const meta = (f) => read(`AppStore/metadata/en-US/${f}.txt`).trim()
+
+console.log("\nChecking AppStore/metadata against web/lib and the Swift sources...")
+
+const siteUrl = tsValue("siteUrl")
+check("marketing_url == siteUrl", meta("marketing_url"), siteUrl)
+check("support_url == siteUrl", meta("support_url"), siteUrl)
+check("privacy_url == siteUrl + /privacy", meta("privacy_url"), `${siteUrl}/privacy`)
+check("name.txt == APP.name", meta("name"), tsValue("name"))
+check(
+  "name.txt == CFBundleName (App Store)",
+  meta("name"),
+  plistMASValue("CFBundleName")
+)
+
+// Zehn statt elf: Restore braucht den vorherigen Fensterrahmen, und den meldet
+// Kurzbefehle nicht zurück (ShortcutsWindowSnapper beantwortet .restore mit
+// .nothingToRestore). Gerechnet statt abgeschrieben.
+check(
+  "APP.storeSnapActions == Aktionen − 1",
+  appTs.match(/storeSnapActions:\s*(\d+)/)?.[1],
+  String(swiftCases.length - 1)
+)
+
+check(
+  "APP.companionShortcutName == CompanionShortcutManager.shortcutName",
+  appTs.match(/companionShortcutName:\s*"([^"]+)"/)?.[1],
+  read("Sources/MikaGridMAS/CompanionShortcutManager.swift").match(
+    /shortcutName\s*=\s*"([^"]+)"/
+  )?.[1]
+)
+
 if (failures) {
   console.error(`\n${failures} mismatch(es) — update web/lib before releasing.`)
   process.exit(1)

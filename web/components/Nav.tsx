@@ -6,6 +6,7 @@ const LINKS = [
   { href: "#features", label: "Features" },
   { href: "#shortcuts", label: "Shortcuts" },
   { href: "#install", label: "Install" },
+  { href: "#editions", label: "Versions" },
   { href: "#faq", label: "FAQ" },
 ]
 

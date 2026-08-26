@@ -22,9 +22,9 @@ export function Trust() {
           ))}
         </div>
         <p className="mx-auto mt-8 max-w-2xl text-center text-sm leading-relaxed text-teal-lightest/50">
-          Mika+Grid has no Dock icon, no login, and no network access beyond the
-          signed update check. Window positions never leave your Mac — the app
-          only talks to the macOS Accessibility API.
+          Mika+Grid has no Dock icon and no login. The direct download makes no
+          network request beyond the signed update check; the App Store version
+          makes none at all. Window positions never leave your Mac.
         </p>
       </div>
     </section>

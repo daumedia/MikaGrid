@@ -6,3 +6,7 @@ installer/
 *.xcworkspace
 DerivedData/
 .swiftpm/
+
+# Regenerierbar über AppStore/tools/make-wallpaper.swift
+AppStore/screenshots/raw/wallpaper.png
+build/capture-zustand

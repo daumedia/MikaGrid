@@ -1,0 +1,74 @@
+{
+  "_comment": "Headline, Subline und Layout je Motiv und Sprache. compose.swift liest die Rohaufnahme aus screenshots/raw/<lang>/ und bricht ab, wenn sie fehlt — kein stiller Rückfall auf eine andere Sprache, das brächte englische Aufnahmen in einen übersetzten Store. 'theme' wählt den Grund (light = helles Mint, dark = Markenverlauf), 'layout' die Komposition (hero, text-top, frame-top, highlight). 'card' beschreibt den vergrößerten Ausschnitt des highlight-Layouts: 'rect' ist [links, oben, rechts, unten], normiert auf 0…1 der Aufnahme, 'scale' der Vergrößerungsfaktor, 'y' verschiebt die Kartenmitte relativ zur Leinwandhöhe. Anders als bei Mika+FileScope sind die Aufnahmen Bildschirmausschnitte, keine einzelnen Fenster — der Ausschnitt einer Karte zeigt deshalb meist das Popover oder ein einzelnes gesnapptes Fenster.",
+  "shots": [
+    {
+      "file": "01_halves",
+      "theme": "light",
+      "layout": "highlight",
+      "card": {
+        "rect": [
+          0.726,
+          0.02,
+          0.918,
+          0.56
+        ],
+        "scale": 1.35,
+        "y": 0.4
+      }
+    },
+    {
+      "file": "02_quarters",
+      "theme": "dark",
+      "layout": "hero"
+    },
+    {
+      "file": "03_maximize",
+      "theme": "light",
+      "layout": "frame-top"
+    },
+    {
+      "file": "04_setup",
+      "theme": "dark",
+      "layout": "highlight",
+      "card": {
+        "rect": [
+          0.345,
+          0.395,
+          0.655,
+          0.58
+        ],
+        "scale": 1.9,
+        "y": 0.34
+      }
+    },
+    {
+      "file": "05_center",
+      "theme": "light",
+      "layout": "text-top"
+    }
+  ],
+  "texts": {
+    "en": {
+      "01_halves": {
+        "headline": "One keystroke, one half",
+        "subline": "Control-Option-Left sends the front window to the left. Or click the zone in the menu bar."
+      },
+      "02_quarters": {
+        "headline": "Four windows, four corners",
+        "subline": "Quarters on U, I, J and K — the whole screen arranged without touching the mouse."
+      },
+      "05_center": {
+        "headline": "Room for one thing",
+        "subline": "A centered two-thirds layout for the window you actually want to work in."
+      },
+      "04_setup": {
+        "headline": "Set up once, in one click",
+        "subline": "The welcome flow adds the single shortcut this version needs to move your windows."
+      },
+      "03_maximize": {
+        "headline": "Or fill the whole screen",
+        "subline": "Control-Option-Return gives one window everything — minus the menu bar."
+      }
+    }
+  }
+}

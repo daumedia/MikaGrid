@@ -34,6 +34,7 @@ export const metadata: Metadata = {
     "window snapping",
     "menubar app",
     "Rectangle alternative",
+    "Mac App Store",
     "keyboard shortcuts",
     "Apple Silicon",
     "Mika+",
