@@ -98,6 +98,17 @@ if [ "$STORE" = true ]; then
         || fail "Info-MAS.plist says $MAS_VERSION, Info.plist says $VERSION — keep both in step"
     ok "Info-MAS.plist agrees: $MAS_VERSION (build $MAS_BUILD)"
 
+    # Schlüssel, die der Store verlangt. Ohne sie bricht erst der Upload ab — nach
+    # Archivieren, Signieren und Hochladen, also spät und teuer. Einmal passiert:
+    # Fehler 90242, „The Info.plist must contain a LSApplicationCategoryType key".
+    for key in LSApplicationCategoryType ITSAppUsesNonExemptEncryption; do
+        /usr/libexec/PlistBuddy -c "Print :$key" "$MAS_PLIST" >/dev/null 2>&1 \
+            || fail "Info-MAS.plist has no $key — App Store Connect will reject the archive.
+       LSApplicationCategoryType must hold a UTI such as public.app-category.productivity
+       and match the category chosen in App Store Connect."
+    done
+    ok "store-required Info.plist keys present"
+
     # The store needs a different certificate than direct distribution. Saying so up front
     # beats a signing failure twenty minutes into an archive.
     security find-identity -v -p codesigning 2>/dev/null \

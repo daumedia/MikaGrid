@@ -33,6 +33,20 @@
 	<string>3</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>15.0</string>
+	<!-- Pflicht für den Mac App Store. Ohne diesen Schlüssel weist App Store Connect das
+	     Archiv ab: Fehler 90242 „The Info.plist must contain a LSApplicationCategoryType
+	     key". Ein Fensterverwalter ist ein Produktivitätswerkzeug; die Alternative wäre
+	     `public.app-category.utilities`. Die Kategorie ist in App Store Connect jederzeit
+	     änderbar, dieser Schlüssel muss nur zur dort gewählten passen. -->
+	<key>LSApplicationCategoryType</key>
+	<string>public.app-category.productivity</string>
+	<!-- Erspart bei JEDEM Upload die Rückfrage zur Exportkonformität. Mika+Grid enthält
+	     keine Verschlüsselung: Es rechnet Fensterrahmen und spricht mit einer System-App
+	     auf demselben Gerät — kein Netzverkehr (AK-24). -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+	<key>NSHumanReadableCopyright</key>
+	<string>© 2026 Michael Ferreira · daumedia.lu · MIT-Lizenz</string>
 	<key>LSUIElement</key>
 	<true/>
 	<key>NSHighResolutionCapable</key>

@@ -139,6 +139,10 @@ Jede Ansicht braucht vier Zustände: leer, ladend, Fehler, gefüllt.
       Mindestsystem macOS 15, Beschreibung nennt den Companion-Shortcut **vor** dem
       Download, Datenschutzangaben „keine Daten erhoben". Keine Codeänderung.
       — `AK-19, AK-20, AK-21`
+      **Nachtrag 2026-08-26:** Die dort gewählte **Kategorie** muss zu
+      `LSApplicationCategoryType` in `Resources/Info-MAS.plist` passen — derzeit
+      `public.app-category.productivity`. Weichen beide voneinander ab, weist App Store
+      Connect das Archiv ab.
       **NICHT AUSFÜHRBAR 2026-08-25:** Verlangt Zugang zu App Store Connect. Es fehlen die
       App-Kennung `lu.daumedia.mikagrid.mas` und ein Store-Zertifikat. **AK-19 bis AK-21
       bleiben offen** — reine Betreiberarbeit, kein Code.
