@@ -199,9 +199,14 @@ echo ""
 echo "==> Building..."
 SIGN_IDENTITY="${SIGN_IDENTITY:-}" bash "$PROJECT_DIR/scripts/build.sh" --clean --universal
 
-codesign -dvv "$APP_BUNDLE" 2>&1 | grep -q "Authority=Developer ID Application" \
-    || fail "app is not signed with a Developer ID — Gatekeeper would reject it on other Macs"
-ok "signed with Developer ID"
+# Capture rather than pipe: a failing check must be able to say *why*, and `codesign`
+# writes everything to stderr.
+SIG_INFO="$(codesign -dvv "$APP_BUNDLE" 2>&1 || true)"
+case "$SIG_INFO" in
+    *"Authority=Developer ID Application"*) ok "signed with Developer ID" ;;
+    *) printf '%s\n' "$SIG_INFO" | sed 's/^/    /' >&2
+       fail "app is not signed with a Developer ID — Gatekeeper would reject it on other Macs" ;;
+esac
 
 # --- 3 · DMG ------------------------------------------------------------------------------
 echo ""
@@ -239,8 +244,12 @@ fi
 # --- 5 · appcast --------------------------------------------------------------------------
 echo ""
 echo "==> Signing update for the appcast..."
-SIGN_UPDATE=$(find "$PROJECT_DIR/.build/artifacts" -name sign_update -perm +111 -print -quit)
-[ -n "$SIGN_UPDATE" ] || fail "sign_update not found — run 'swift package resolve'"
+# `build.sh --clean` wipes .build — and sign_update lives inside it, as Sparkle's SwiftPM
+# binary artefact. Resolving before the build would therefore be useless: it has to happen
+# here, after. Served from the SwiftPM cache, so no network is needed on a warm machine.
+swift package resolve --package-path "$PROJECT_DIR" >/dev/null 2>&1 || true
+SIGN_UPDATE=$(find "$PROJECT_DIR/.build/artifacts" -name sign_update -perm +111 -print -quit 2>/dev/null || true)
+[ -n "$SIGN_UPDATE" ] || fail "sign_update not found — 'swift package resolve' could not provide it"
 
 SIGNATURE_LINE=$("$SIGN_UPDATE" "$DMG")
 ok "signature generated"
