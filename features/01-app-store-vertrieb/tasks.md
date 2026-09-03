@@ -1,6 +1,6 @@
 # 01 · App-Store-Vertrieb — Aufgabenplan
 
-Status: `approved` · Stand: 2026-08-26 · Stack-Profil: `swiftui-macos`
+Status: `deployed` · Stand: 2026-09-03 · Stack-Profil: `swiftui-macos`
 
 Ebenen laufen in Reihenfolge. `[P]` heißt: innerhalb dieser Ebene unabhängig von den
 anderen `[P]`-Aufgaben, darf parallel an einen Subagenten gehen.
@@ -145,12 +145,14 @@ Jede Ansicht braucht vier Zustände: leer, ladend, Fehler, gefüllt.
       macOS 15 (AK-19) und tragen die Grundlage für „Data Not Collected" (AK-21) samt
       Belegen. Was in App Store Connect einzutragen ist, steht in
       `AppStore/CHECKLISTE.md`.
-- [ ] **T21b** `[P]` · Die vorbereiteten Angaben in App Store Connect eintragen und
+- [x] **T21b** `[P]` · Die vorbereiteten Angaben in App Store Connect eintragen und
       einreichen. — `AK-19, AK-20, AK-21`
-      **NICHT AUSFÜHRBAR:** Verlangt Zugang zu App Store Connect. Es fehlen der
-      App-Datensatz und ein Store-Zertifikat (`3rd Party Mac Developer Application`;
-      vorhanden ist nur `Developer ID Application`, geprüft am 2026-08-26). **AK-19 bis
-      AK-21 bleiben bis dahin offen** — reine Betreiberarbeit, kein Code.
+      **Erledigt 2026-09-03: freigegeben.** Die App steht als `id6805495907` im Mac App
+      Store (`https://apps.apple.com/app/id6805495907`). Damit sind **AK-19 bis AK-21**
+      geschlossen; App-Datensatz, Store-Zertifikat und Provisioning Profile sind
+      zwangsläufig vorhanden, weil ohne sie keine Freigabe zustande kommt.
+      Beim Stand vom 2026-08-26 fehlte all das noch — es war reine Betreiberarbeit,
+      kein Code.
       Die **Kategorie** muss zu `LSApplicationCategoryType` in `Resources/Info-MAS.plist`
       passen — derzeit `public.app-category.productivity`. Weichen beide voneinander ab,
       weist App Store Connect das Archiv mit Fehler 90242 ab.

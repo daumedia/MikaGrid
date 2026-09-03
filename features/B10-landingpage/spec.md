@@ -71,11 +71,14 @@ Auftragsarbeit aufmerksam macht — der Zweck, den das PRD unter Monetarisierung
   Abhängigkeiten, keine Fundstelle für Cookies, lokalen Speicher oder Formulare.)*
 - **AK-11** · Angenommen, die Seite behauptet „0 Trackers or analytics", wenn das geprüft
   wird, dann trifft die Aussage zu.
-- **AK-12** ⚠ · Angenommen, ein Interessent ruft die im Quelltext hinterlegte Adresse
-  `https://mikagrid.vercel.app` auf, dann erhält er eine Fehlerseite.
-  *(Unverändert am 2026-08-25: HTTP 404 mit `x-vercel-error: DEPLOYMENT_NOT_FOUND`. Das
-  Vercel-Projekt ist verbunden und baut Vorschauen je Pull Request; ein Produktivstand
-  unter dieser Adresse fehlt. Der Marker bleibt deshalb stehen. Siehe FB-02.)*
+- **AK-12** · Angenommen, ein Interessent ruft die im Quelltext hinterlegte Adresse
+  `https://grid.daumedia.lu` auf, dann erhält er die Landingpage.
+  *(Nachgemessen am 2026-09-03: HTTP 200 unter `/` und unter `/privacy` — letztere ist die
+  Datenschutz-Adresse des Store-Eintrags. Bis 2026-08-25 stand im Quelltext
+  `https://mikagrid.vercel.app` und antwortete mit HTTP 404 und
+  `x-vercel-error: DEPLOYMENT_NOT_FOUND`; mit dem Store-Paket wurde `APP.siteUrl` auf die
+  eigene Domain umgestellt, seither ist ein Produktivstand darunter erreichbar. Der
+  ⚠-Marker ist damit hinfällig. Siehe FB-02.)*
 - **AK-13** · Angenommen, ein Besucher klickt in der Fußzeile auf „MIT Licence", dann
   erreicht er die Lizenzdatei im Repository.
   *(Bis 1.1.1 führte der Link auf `…/blob/master/LICENSE` ins Leere: Die Datei existierte
@@ -118,17 +121,17 @@ Geprüft gegen `~/.claude/sdd/sicherheit.md`.
   nach Art. 13 DSGVO, einschließlich der Zugriffsprotokolle des Hosters). Beide sind in
   der Fußzeile verlinkt und stehen in der Sitemap. Dazu `docs/datenschutz.md` als interne
   Fassung.
-- **FB-02 ⚠ Die Seite ist nicht erreichbar.**
-  **Nicht behoben — nicht behebbar ohne Zugang.** Genauer, als die Erfassung es sehen
-  konnte: Das Vercel-Projekt **existiert** und ist mit dem Repository verbunden — es hat für
+- **FB-02 ✅ Die Seite war nicht erreichbar.**
+  **Behoben außerhalb des Repositories** (2026-09-03 nachgemessen). Bei der Erfassung
+  existierte das Vercel-Projekt bereits und war mit dem Repository verbunden — es hatte für
   Pull Request #7 selbsttätig ein Vorschau-Deployment gebaut (`daumedia/mikaplus-grid`).
-  Es fehlt also nicht die Verbindung, sondern ein **Produktiv-Deployment** unter einer
-  erreichbaren Adresse: `mikagrid.vercel.app`, `mikaplus-grid.vercel.app` und
-  `mikaplusgrid.vercel.app` antworten alle mit 404.
-  **Zu klären:** ob mit dem Merge nach `main` ein Produktivstand entsteht, und unter welcher
-  Adresse. Stimmt sie nicht mit `APP.siteUrl` überein, müssen `lib/app.ts`, die kanonische
-  Adresse, `sitemap.xml` und die strukturierten Daten nachgezogen werden.
-  **Der einzige verbliebene Punkt dieses Features.**
+  Es fehlte nicht die Verbindung, sondern ein **Produktiv-Deployment** unter einer
+  erreichbaren Adresse; `mikagrid.vercel.app`, `mikaplus-grid.vercel.app` und
+  `mikaplusgrid.vercel.app` antworteten alle mit 404.
+  Ausgespielt wird jetzt unter `https://grid.daumedia.lu` — der Adresse, die `APP.siteUrl`,
+  die kanonische Adresse, `sitemap.xml`, die strukturierten Daten und
+  `AppStore/metadata/en-US/*_url.txt` ohnehin nennen. Ein Nachziehen entfiel deshalb.
+  **Damit ist dieses Feature vollständig.**
 - **FB-03 ✅ Der Lizenzlink der Fußzeile war tot.**
   **Behoben:** `LICENSE` existiert jetzt im Repository, und `APP.licenseUrl` zeigt auf
   `/blob/HEAD/LICENSE` — das folgt immer dem Standardzweig.
@@ -148,10 +151,10 @@ Geprüft gegen `~/.claude/sdd/sicherheit.md`.
 
 ## Entschiedene Fragen
 
-- **OF-01 ⚠ Die Seite soll live gehen** — die Entscheidung ist gefallen, die Ausführung
-  steht aus. Alles, was ihr im Weg stand, ist beseitigt: Der Bau ist grün, Impressum und
-  Datenschutzerklärung liegen vor, der Lizenzlink stimmt. Es fehlt der Anstoß im
-  Vercel-Konto (Root Directory `web`). Siehe FB-02.
+- **OF-01 ✅ Die Seite ist live** — unter `https://grid.daumedia.lu`, am 2026-09-03 mit
+  HTTP 200 nachgemessen. Alles, was der Veröffentlichung im Weg stand, war zuvor beseitigt:
+  Der Bau ist grün, Impressum und Datenschutzerklärung liegen vor, der Lizenzlink stimmt.
+  Gefehlt hatte nur der Anstoß im Vercel-Konto (Root Directory `web`). Siehe FB-02.
 - **OF-02 ✅ `LICENSE` ist ergänzt** — MIT, wie an vier Stellen zugesagt.
 - **OF-03 ✅ Impressum und Datenschutzerklärung sind ergänzt.** Bei „Visitenkarte für
   Auftragsarbeit" als erklärtem Zweck ist die Seite kein rein privates Angebot; die

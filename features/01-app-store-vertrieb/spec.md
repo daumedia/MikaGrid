@@ -1,6 +1,6 @@
 # 01 · App-Store-Vertrieb — Spezifikation
 
-Status: `planned` · Stand: 2026-08-25
+Status: `deployed` · Stand: 2026-09-03
 
 > **Erstes Feature im Vorwärts-Namensraum.** Anders als B01–B10 entsteht dieses gegen eine
 > Anforderung, nicht rückwirkend aus dem Bestand. Es erweitert die Bestandsfeatures
@@ -188,10 +188,12 @@ Geprüft gegen `~/.claude/sdd/sicherheit.md`.
 
 ## Offene Fragen
 
-- **OF-01** · Was, wenn Apple die Einreichung ablehnt? Der Weg ist belegt, aber die
-  Prüfung ist keine Zusicherung — 941 Tiles wurde erst nach einer Ablehnung genehmigt.
-  Vor dem Umbau des Onboardings sollte eine minimale Fassung eingereicht werden, um das
-  früh zu erfahren. — *Betreiber, vor dem Baubeginn.*
+- **OF-01** ✅ *Beantwortet durch die Freigabe (2026-09-03).* Apple hat die App
+  angenommen; sie steht als `id6805495907` im Store. Der erwogene Vorabversuch mit einer
+  minimalen Fassung wurde nicht gegangen — eingereicht wurde der vollständige Stand
+  einschließlich des Onboarding-Schritts für den Companion-Kurzbefehl. Die damalige Sorge
+  bleibt für künftige Fassungen gültig: Eine bestandene Prüfung ist keine Zusicherung für
+  die nächste.
 - **OF-02** ❌ *In T01 am Versuch geklärt: **nein**.* `Find Windows` liefert ein
   Fenster-Objekt, dessen Textdarstellung nur den Namen der Anwendung enthält; eine
   „Get Details of Windows"-Aktion existiert nicht. Damit ist „Position wiederherstellen"

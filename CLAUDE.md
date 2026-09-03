@@ -25,10 +25,11 @@ nicht was er tun sollte. Jedes trägt einen Abschnitt *Fehlbestand* mit den Lüc
 dabei aufgefallen sind.
 
 Alle zehn Features stehen auf `rekonstruiert`. Der bei der Erfassung gefundene Fehlbestand
-wurde in **v1.2.0** abgearbeitet: von 73 Lücken sind 71 geschlossen, von 30 offenen Fragen
-28 entschieden. Offen bleiben zwei Punkte, die Zugangsdaten außerhalb des Repositories
-verlangen — die Notarisierung und die Veröffentlichung der Landingpage; beide stehen in
-`features/index.md` unter „Was offen bleibt".
+wurde in **v1.2.0** abgearbeitet: von 73 Lücken sind 72 geschlossen, von 30 offenen Fragen
+29 entschieden. Offen bleibt **ein** Punkt, der Zugangsdaten außerhalb des Repositories
+verlangt: die Notarisierung des Direktvertriebs. Er steht in `features/index.md` unter
+„Was offen bleibt"; die Landingpage ist seit dem 2026-09-03 unter `grid.daumedia.lu`
+erreichbar.
 
 **Beim Arbeiten am Code:** Die Spec des betroffenen Features ist eine *Rekonstruktion*
 und kann selbst falsch sein — anders als bei einer Spec, die vor dem Code entstand. Wer
@@ -39,6 +40,12 @@ ein Bestandsfeature erweitert, legt ein neues Feature mit eigener Nummer an, das
 
 **Zwei Fassungen aus einem Quelltext** (seit Feature 01). Sie unterscheiden sich an genau
 einer Stelle: wie ein Fenster bewegt wird.
+
+**Die Store-Fassung ist seit dem 2026-09-03 freigegeben** — `id6805495907`,
+<https://apps.apple.com/app/id6805495907>. Der **Direktvertrieb hinkt hinterher:** Das
+neueste GitHub-Release ist 1.1.1, `appcast.xml` kennt keine 1.2.0, und die DMG-Adresse in
+`web/lib/app.ts` zeigt auf ein Release, das es nicht gibt. Wer 1.2.0 direkt ausliefern
+will, braucht zuerst die Notarisierung.
 
 | | Direktvertrieb | App Store |
 |---|---|---|
@@ -197,7 +204,7 @@ Brand tokens live in `web/app/globals.css` (`@theme`) and mirror
 ## Build & Run
 ```bash
 swift build                      # Debug build (Direktziel)
-swift test                       # 62 tests — run these before touching geometry or hotkeys
+swift test                       # 86 tests — run these before touching geometry or hotkeys
 bash build.sh                    # Build + app bundle + codesign (Developer ID if available)
 bash build.sh --universal        # arm64 + x86_64
 open build/Mika+Grid.app         # Launch
