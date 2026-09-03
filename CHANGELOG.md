@@ -1,6 +1,15 @@
 # Changelog
 
-## [Unreleased]
+## [1.2.0 · App Store] - 2026-09-03
+
+Released on the Mac App Store as build 3 of 1.2.0 —
+[apps.apple.com/app/id6805495907](https://apps.apple.com/app/id6805495907). Same marketing
+version as the direct download, a different binary: sandboxed, macOS 15 and up, moving
+windows through Shortcuts instead of the Accessibility API.
+
+**The direct download has not been re-cut for 1.2.0.** The newest DMG on the releases page
+is still 1.1.1, and `appcast.xml` has no 1.2.0 entry — Sparkle users stay on 1.1.1 until
+`scripts/release.sh` runs, which needs the notarisation credentials.
 
 ### App Store distribution (feature 01)
 - **Two apps from one source tree.** `MikaGridCore` carries everything both versions share

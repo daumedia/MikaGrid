@@ -1,5 +1,6 @@
 import { APP } from "@/lib/app"
 import { DownloadButton, DownloadMeta } from "@/components/ui/DownloadButton"
+import { AppStoreLink } from "@/components/ui/AppStoreLink"
 import { KbdCombo } from "@/components/ui/Kbd"
 import { SnapGridDemo } from "@/components/SnapGridDemo"
 
@@ -31,6 +32,7 @@ export function Hero() {
 
           <div className="mt-9 flex flex-col items-center justify-center gap-4 sm:flex-row">
             <DownloadButton />
+            <AppStoreLink />
             <a
               href={APP.repo}
               target="_blank"

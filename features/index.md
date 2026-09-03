@@ -14,7 +14,7 @@ Features, die gegen eine Anforderung entstehen — mit Spec **vor** dem Code.
 
 | ID | Feature | Prio | Status | Abhängig von | Zuletzt |
 |---|---|---|---|---|---|
-| 01 | App-Store-Vertrieb | P1 | approved | B01, B03, B04, B06, B09 | 2026-08-26 |
+| 01 | App-Store-Vertrieb | P1 | deployed | B01, B03, B04, B06, B09 | 2026-09-03 |
 
 ### Bestand
 
@@ -35,7 +35,7 @@ Features, die gegen eine Anforderung entstehen — mit Spec **vor** dem Code.
 
 | ID | Umfang | Quellen |
 |---|---|---|
-| 01 | Xcode-Projekt mit zwei Zielen; Store-Ziel sandboxed und über Shortcuts statt Accessibility-API; Onboarding-Schritt für den Companion-Shortcut; Store-Auftritt (Texte, Screenshots, Fragebogen-Antworten) | `project.yml`, `Sources/MikaGridMAS/`, `AppStore/` — die Einreichung selbst steht aus |
+| 01 | Xcode-Projekt mit zwei Zielen; Store-Ziel sandboxed und über Shortcuts statt Accessibility-API; Onboarding-Schritt für den Companion-Shortcut; Store-Auftritt (Texte, Screenshots, Fragebogen-Antworten) | `project.yml`, `Sources/MikaGridMAS/`, `AppStore/` — seit 2026-09-03 im Mac App Store freigegeben (`id6805495907`) |
 | B01 | Elf Snap-Aktionen, Zielgeometrie je Bildschirm, Bildschirmwahl über den Fenstermittelpunkt, Schreibfolge Größe→Position→Größe mit Rückmessung, Umgang mit `AXEnhancedUserInterface` und AX-Zeitgrenzen | `WindowManager.swift`, `SnapAction.swift` |
 | B02 | Sichern des Rahmens vor dem **ersten** Snap, Wiederherstellen mit ⌃⌥⌫, Schlüssel ist die Fensterreferenz (`CFEqual`), Historie auf 100 Einträge begrenzt | `SnapHistory.swift`, `WindowManager.snapFrontmostWindow` (restore-Zweig) |
 | B03 | Carbon-Registrierung der elf Kürzel, einmalige Handler-Installation, freie Belegung über Recorder, Konflikt- und Sperrlistenprüfung, sichtbare Fehlschläge, Speicherung mit Schemaversion und Auffüllen fehlender Belegungen | `HotkeyManager.swift`, `Preferences/ShortcutsTabView.swift` |
@@ -54,29 +54,45 @@ Bestand **repariert**: Alle Lücken, die die Erfassung zutage gefördert hat, si
 **v1.2.0** geschlossen — bis auf zwei, die Zugangsdaten außerhalb des Repositories
 verlangen.
 
-| | erfasst | nach der Reparatur |
-|---|---|---|
-| Akzeptanzkriterien | 148 | 148 |
-| davon ⚠ markiert | 26 | **2** |
-| Fehlbestand-Einträge | 73 | **2 offen**, 71 behoben |
-| Offene Fragen | 30 | **2 offen**, 28 entschieden |
-| Tests | 0 | **45** |
+| | erfasst | nach der Reparatur | Stand 2026-09-03 |
+|---|---|---|---|
+| Akzeptanzkriterien | 148 | 148 | 148 |
+| davon ⚠ markiert | 26 | 2 | **1** |
+| Fehlbestand-Einträge | 73 | 2 offen, 71 behoben | **1 offen**, 72 behoben |
+| Offene Fragen | 30 | 2 offen, 28 entschieden | **1 offen**, 29 entschieden |
+| Tests | 0 | 45 | **86** |
+
+Die dritte Spalte hält fest, was seit der Reparatur außerhalb des Repositories erledigt
+wurde: die Landingpage ist unter `grid.daumedia.lu` erreichbar (B10/FB-02, B10/OF-01), und
+die App ist im Mac App Store freigegeben (01/T21b). Übrig bleibt die Notarisierung des
+Direktvertriebs.
 
 Die verbliebenen ⚠ markieren jetzt etwas anderes als vorher: nicht mehr „fragwürdiges
 Verhalten, das zu klären ist", sondern **Punkte, die aus dem Repository heraus nicht
 lösbar sind**.
+
+### Was inzwischen erledigt ist
+
+| Punkt | Erledigt | Nachweis |
+|---|---|---|
+| **Landingpage veröffentlichen** (B10/FB-02, B10/OF-01) | vor dem 2026-09-03 | `https://grid.daumedia.lu` und `/privacy` antworten mit HTTP 200. Die Adresse stand seit dem Store-Paket in `web/lib/app.ts` und in `AppStore/metadata/en-US/*_url.txt`; ein Nachziehen entfiel deshalb |
+| **Store-Einreichung** (01/T21b) | 2026-09-03 | Freigegeben als `id6805495907`, erreichbar über `https://apps.apple.com/app/id6805495907`. Damit sind Store-Zertifikat, Provisioning Profile, App-Datensatz und die beiden Fragebögen zwangsläufig erledigt — sie sind Voraussetzung der Freigabe |
 
 ### Was offen bleibt
 
 | Punkt | Warum offen | Was fehlt |
 |---|---|---|
 | **Notarisierung** (B09/FB-01, B08/FB-08) | Zugangsdaten für App Store Connect gehören nicht ins Repository | Einmalig `xcrun notarytool store-credentials MikaGrid --apple-id <id> --team-id CWJM4J4HFN --password <app-spezifisch>`, danach erledigt `scripts/release.sh` den Rest |
-| **Landingpage veröffentlichen** (B10/FB-02) | Zugriff auf das Vercel-Konto nötig | Das Projekt `daumedia/mikaplus-grid` ist bereits verbunden und baut Vorschauen je Pull Request — es fehlt ein Produktivstand unter `grid.daumedia.lu`. Diese Adresse steht seit dem Store-Paket in `web/lib/app.ts` und in `AppStore/metadata/en-US/*_url.txt`; Apple ruft sie bei der Prüfung auf |
-| **Store-Einreichung** (01/T21b) | Zertifikat und App-Datensatz liegen im Apple-Konto | Ein `3rd Party Mac Developer Application`-Zertifikat fehlt (vorhanden ist nur `Developer ID Application`), ebenso der App-Datensatz und ein App-Store-Connect-Schlüssel. Alles Vorbereitbare liegt in `AppStore/`; abzuarbeiten ist `AppStore/CHECKLISTE.md` |
 
 Ein Developer-ID-Zertifikat ist vorhanden (`Michael Rodrigues, CWJM4J4HFN`), die
 Mitgliedschaft besteht also — bei der Notarisierung fehlt wirklich nur der einmalige
-Anmeldeschritt.
+Anmeldeschritt. Sie betrifft ausschließlich den Direktvertrieb; die Store-Fassung wird von
+Apple signiert.
+
+Zwei Punkte aus `AppStore/CHECKLISTE.md` sind **nicht** entschieden, sondern
+unentschieden ausgeliefert worden: der deutsche `NSAppleEventsUsageDescription`-Text und
+die Restore-Zone, die in der Store-Fassung „Nothing to restore" meldet. Beide gingen durch
+die Prüfung; sie stehen dort jetzt als Nachtrag.
 
 ## Reihenfolge der QA
 
@@ -92,7 +108,7 @@ Unverändert nach Risiko, jetzt als Eingangsreihenfolge für `sdd-qa`:
 | 4 | **B01** Fenster snappen | Schreibt in fremde Prozesse, liest Fenstertitel |
 | 5 | **B02** Wiederherstellen | Hält Fenstertitel im Speicher — der einzige Ort mit möglichem Personenbezug |
 | 6 | **B03** Globale Tastenkürzel | Systemweite Kürzel, Tastatur-Beobachter während der Aufnahme |
-| 7 | **B10** Landingpage | Öffentliche Zusagen zu Lizenz und Datenschutz; heute nicht ausgeliefert |
+| 7 | **B10** Landingpage | Öffentliche Zusagen zu Lizenz und Datenschutz. Die Reihung stammt aus der Erfassung, als die Seite noch nicht ausgeliefert war; seit 2026-09-03 steht sie unter `grid.daumedia.lu` und ist außerdem die Datenschutz-Adresse des Store-Eintrags |
 | 8 | **B04** Popover | Darstellung |
 | 9 | **B06** Onboarding | Ablauf und Darstellung |
 | 10 | **B07** Einstellungsfenster | Lokale Einstellungen |

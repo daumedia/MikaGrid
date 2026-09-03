@@ -31,8 +31,11 @@ export const APP = {
   storeSnapActions: 10,
   // Muss zu CompanionShortcutManager.shortcutName passen — geprüft.
   companionShortcutName: "Mika+Grid Snap",
-  // Leer, solange der App-Datensatz fehlt: Ein toter Store-Link ist schlimmer als keiner.
-  appStoreUrl: "",
+  // Freigegeben am 2026-09-03. Bewusst ohne Storefront und ohne `?l=`/`&mt=`: Die kurze
+  // Form leitet jeden Besucher in seinen eigenen Store und seine eigene Sprache um — ein
+  // fest verdrahtetes `/lu/` schickte alle anderen auf einen Umweg. 6805495907 ist die
+  // Apple-ID des App-Datensatzes.
+  appStoreUrl: "https://apps.apple.com/app/id6805495907",
   vendor: "Daumedia",
   vendorUrl: "https://daumedia.lu",
 } as const

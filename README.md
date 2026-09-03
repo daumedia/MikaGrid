@@ -2,6 +2,8 @@
 
 A lightweight macOS menubar window manager that snaps windows to predefined layouts using keyboard shortcuts or a visual grid — similar to Rectangle, built natively with Swift and SwiftUI. Part of the Mika+ ecosystem.
 
+**[Mac App Store](https://apps.apple.com/app/id6805495907)** · [grid.daumedia.lu](https://grid.daumedia.lu) · [Releases](https://github.com/daumedia/MikaGrid/releases)
+
 ## Features
 
 - **Menubar App** — lives in your menubar, no Dock icon (`LSUIElement`)
@@ -17,7 +19,8 @@ A lightweight macOS menubar window manager that snaps windows to predefined layo
 - **Launch at Login** — via SMAppService (macOS 13+)
 - **Sparkle Auto-Update** — automatic update checks with EdDSA signature verification
 - **Mika+ Branding** — dark theme with teal accent colors
-- **Tested** — 45 unit tests covering snap geometry, shortcut persistence and window history
+- **Tested** — 86 unit tests covering snap geometry, shortcut persistence, window history,
+  the Shortcuts payload and the App Store listing
 
 ## Keyboard Shortcuts
 
@@ -53,6 +56,11 @@ place: how a window is actually moved.
 
 Both versions share one bundle identifier (`lu.daumedia.mikagrid`), so they cannot be
 installed side by side — pick one.
+
+The App Store version has been available since 3 September 2026:
+**[Mika+Grid on the Mac App Store](https://apps.apple.com/app/id6805495907)**. The direct
+download ships as a signed DMG on the
+[releases page](https://github.com/daumedia/MikaGrid/releases).
 
 The App Store forbids the Accessibility API inside the sandbox, and sandboxing is mandatory
 for new submissions. That is why the store version takes the detour through Shortcuts — and

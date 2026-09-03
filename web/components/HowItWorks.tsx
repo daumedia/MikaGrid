@@ -1,5 +1,6 @@
 import { Section } from "@/components/ui/Section"
 import { DownloadButton, DownloadMeta } from "@/components/ui/DownloadButton"
+import { AppStoreLink } from "@/components/ui/AppStoreLink"
 
 const STEPS = [
   {
@@ -50,7 +51,10 @@ export function HowItWorks() {
         <p className="max-w-md text-sm leading-relaxed text-teal-lightest/70">
           Free, open source, and no account required.
         </p>
-        <DownloadButton className="mt-2" />
+        <div className="mt-2 flex flex-col items-center gap-4 sm:flex-row">
+          <DownloadButton />
+          <AppStoreLink />
+        </div>
         <DownloadMeta />
       </div>
     </Section>

@@ -78,7 +78,7 @@ aufhört, Nachbarfunktionen mitzubauen.
 | Mindestsystem | macOS 14 (Direktvertrieb) · macOS 15 (App Store — die Fensteraktionen von Kurzbefehle setzen es voraus) |
 | Library Validation | **an.** Die Entitlement wurde in 1.2.0 entfernt: Sie war ein Symptom der Ad-hoc-Signatur und ist mit Developer-ID-Signatur entbehrlich (nachgewiesen). Ad-hoc-Bauten bekommen sie automatisch |
 | Externe Dienste | GitHub (Update-Feed `raw.githubusercontent.com/daumedia/MikaGrid/master/appcast.xml` und DMG-Download aus Releases) · Vercel (Hosting der Landingpage) |
-| Vertrieb | GitHub Releases als signiertes DMG, Sparkle-Selbstaktualisierung, Landingpage `mikagrid.vercel.app` (noch nicht veröffentlicht) |
+| Vertrieb | **zwei Wege.** *Direktvertrieb:* GitHub Releases als signiertes DMG mit Sparkle-Selbstaktualisierung. *App Store:* seit 2026-09-03 freigegeben (`id6805495907`), Aktualisierung über den Store. Landingpage unter `grid.daumedia.lu` |
 | Lizenz | MIT — `LICENSE` liegt im Repository, README, Website und strukturierte Daten verweisen darauf |
 
 ## Datenschutz — Kurzfassung

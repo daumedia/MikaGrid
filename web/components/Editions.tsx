@@ -80,11 +80,22 @@ export function Editions() {
                 Direct download
               </th>
               <th className="px-5 pb-4 text-sm font-semibold text-teal-surface">
-                Mac App Store
-                {!APP.appStoreUrl && (
-                  <span className="ml-2 rounded-full border border-teal-primary/40 px-2 py-0.5 align-middle text-[10px] font-normal tracking-wide text-teal-primary">
-                    coming soon
-                  </span>
+                {APP.appStoreUrl ? (
+                  <a
+                    href={APP.appStoreUrl}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    className="underline decoration-teal-primary/40 underline-offset-4 transition-colors hover:text-teal-primary"
+                  >
+                    Mac App Store
+                  </a>
+                ) : (
+                  <>
+                    Mac App Store
+                    <span className="ml-2 rounded-full border border-teal-primary/40 px-2 py-0.5 align-middle text-[10px] font-normal tracking-wide text-teal-primary">
+                      coming soon
+                    </span>
+                  </>
                 )}
               </th>
             </tr>
